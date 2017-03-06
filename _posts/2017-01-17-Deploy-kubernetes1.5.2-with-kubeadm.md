@@ -505,3 +505,39 @@ spec:
 ```
 
 部署完Ingress后，解析域名`dashboard.cloudnil.com`到minion02的外网IP，就可以使用`dashboard.cloudnil.com`访问dashboard。
+
+### 10 注意事项
+
+kubeadm目前还在开发测试阶段，不建议在生产环境中使用kubeadm部署kubernates环境。此外，使用kubeadm是需要注意以下几点：
+
+#### 10.1 单点故障
+
+当前版本的kubeadm暂且不能部署真正高可用的kubernates环境，只具有单点的master环境，如采用内置etcd，那etcd也是单节点，若master节点故障，可能存在数据丢失的情况，所以建议采用外部的etcd集群，这样即使master节点故障，那只要重启即可，数据不会丢失，高可用的部署功能据说正在开发中，很快就可以发布使用。
+
+#### 10.2 暴露主机端口
+
+POD实例配置中的HostPort和HostIP参数无法用于使用了CNI网络插件的kubernates集群环境，如果需要暴露容器到主机端口，可以使用NodePort或者HostNetwork。
+
+#### 10.3 CentOS环境路由错误
+
+RHEL/CentOS7 环境中iptables的策略关系，会导致路由通讯错误，需要手动调整iptables的桥接设置：
+
+```bash
+# cat /etc/sysctl.d/k8s.conf
+ net.bridge.bridge-nf-call-ip6tables = 1
+ net.bridge.bridge-nf-call-iptables = 1
+```
+
+#### 10.4 Token丢失
+
+Master节点部署完成之后，会输出一个token用于minion节点的配置链接，不过这个token没有很方便的查看方式，导致此日志输出关闭后，没有token无法join minion节点，可以通过下述方式查看token：
+
+```bash
+kubectl -n kube-system get secret clusterinfo -o yaml | grep token-map | awk '{print $2}' | base64 --decode | sed "s|{||g;s|}||g;s|:|.|g;s/\"//g;" | xargs echo
+```
+
+建议提前使用`kubeadm token`命令生成token，然后在执行`kubeadm init`和`kubeadm join`的使用通过`--token`指定token。
+
+#### 10.5 Vagrant中主机名的问题
+
+如果使用Vagrant虚拟化环境部署kubernates，首先得确保`hostname -i`能够获取正确的通讯IP，默认情况下，如果`/etc/hosts`中未配置主机名与IP的对应关系，kubelet会取第一个非lo网卡作为通讯入口，若这个网卡不做了NAT桥接的网卡，那安装就会出现问题。
