@@ -508,15 +508,15 @@ spec:
 
 ### 10 注意事项
 
-kubeadm目前还在开发测试阶段，不建议在生产环境中使用kubeadm部署kubernates环境。此外，使用kubeadm是需要注意以下几点：
+kubeadm目前还在开发测试阶段，不建议在生产环境中使用kubeadm部署kubernetes环境。此外，使用kubeadm是需要注意以下几点：
 
 #### 10.1 单点故障
 
-当前版本的kubeadm暂且不能部署真正高可用的kubernates环境，只具有单点的master环境，如采用内置etcd，那etcd也是单节点，若master节点故障，可能存在数据丢失的情况，所以建议采用外部的etcd集群，这样即使master节点故障，那只要重启即可，数据不会丢失，高可用的部署功能据说正在开发中，很快就可以发布使用。
+当前版本的kubeadm暂且不能部署真正高可用的kubernetes环境，只具有单点的master环境，如采用内置etcd，那etcd也是单节点，若master节点故障，可能存在数据丢失的情况，所以建议采用外部的etcd集群，这样即使master节点故障，那只要重启即可，数据不会丢失，高可用的部署功能据说正在开发中，很快就可以发布使用。
 
 #### 10.2 暴露主机端口
 
-POD实例配置中的HostPort和HostIP参数无法用于使用了CNI网络插件的kubernates集群环境，如果需要暴露容器到主机端口，可以使用NodePort或者HostNetwork。
+POD实例配置中的HostPort和HostIP参数无法用于使用了CNI网络插件的kubernetes集群环境，如果需要暴露容器到主机端口，可以使用NodePort或者HostNetwork。
 
 #### 10.3 CentOS环境路由错误
 
@@ -540,4 +540,4 @@ kubectl -n kube-system get secret clusterinfo -o yaml | grep token-map | awk '{p
 
 #### 10.5 Vagrant中主机名的问题
 
-如果使用Vagrant虚拟化环境部署kubernates，首先得确保`hostname -i`能够获取正确的通讯IP，默认情况下，如果`/etc/hosts`中未配置主机名与IP的对应关系，kubelet会取第一个非lo网卡作为通讯入口，若这个网卡不做了NAT桥接的网卡，那安装就会出现问题。
+如果使用Vagrant虚拟化环境部署kubernetes，首先得确保`hostname -i`能够获取正确的通讯IP，默认情况下，如果`/etc/hosts`中未配置主机名与IP的对应关系，kubelet会取第一个非lo网卡作为通讯入口，若这个网卡不做了NAT桥接的网卡，那安装就会出现问题。
