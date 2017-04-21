@@ -119,7 +119,7 @@ Flannel来了之后，在每个宿主机上增加了个P2P的虚拟网卡flannel
 
 Flannel的Github上有张比较详细的原理图：
 
-<img src="/images/posts/2017-04-20-flannel.jpg" alt="Flannel" />
+<img src="/images/posts/2017-04-20-flannel.png" alt="Flannel" />
 
 图中的Flanneld运行在每个宿主机上，负责数据的发送、监听、封包、解包等任务。
 
