@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  kubernetes组件介绍
+title:  kubernetes基础组件介绍
 categories: [docker,Cloud]
 date: 2017-04-20 10:58:30 +0800
 keywords: [docker,云计算,kubernetes]
@@ -158,7 +158,9 @@ Calico 的核心组件：
 
 #### 3.3 DNS
 
-kube-dns负责kubernetes集群内的域名解析，解析服务通过dnsmasq实现。通过官方提供的Deployment和Service模板，可以很方便地部署kube-dns服务，并且可以任意伸缩POD实例来保证其高可用性。默认的kube-dns的service_ip：10.96.0.10，默认的域名后缀为：cluster.local，如果是kubeadm部署的kubernetes集群，kubelet的配置参数文件是：`/etc/systemd/system/kubelet.service.d/10-kubeadm.conf`。
+kube-dns负责kubernetes集群内的域名解析，解析服务通过dnsmasq实现。通过官方提供的Deployment和Service模板，可以很方便地部署kube-dns服务，并且可以任意伸缩POD实例来保证其高可用性。
+
+默认的kube-dns的service_ip：10.96.0.10，默认的域名后缀为：cluster.local，如果是kubeadm部署的kubernetes集群，kubelet的配置参数文件是：`/etc/systemd/system/kubelet.service.d/10-kubeadm.conf`。
 
 DNS解析的A记录规则为：`my-svc.my-namespace.svc.cluster.local`，例如kube-dns的service的A记录为：`kube-dns.kube-system.svc.cluster.local`。
 
