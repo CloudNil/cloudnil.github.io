@@ -88,20 +88,20 @@ spec:
 
 ```yaml
 apiVersion: v1
-  kind: PersistentVolume
-  metadata:
-    name: pv002
-  labels:
-    release: stable
-  spec:
-    capacity:
-      storage: 5Gi
-    accessModes:
-      - ReadWriteOnce
-    persistentVolumeReclaimPolicy: Recycle
-    nfs:
-      path: /tmp/data
-      server: 172.17.0.2
+kind: PersistentVolume
+metadata:
+  name: pv002
+labels:
+  release: stable
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  nfs:
+    path: /tmp/data
+    server: 172.17.0.2
 ```
 
 **capacity**
@@ -209,7 +209,7 @@ spec:
 
 PV和PVC创建并绑定之后，类似这样：
 
-```bash
+```Bash
 NAME       CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS    CLAIM               REASON    AGE
 pv/pv001   5Gi        RWO           Recycle         Bound     default/myclaim-1             11m
 
@@ -226,7 +226,7 @@ PersistentVolume有四种状态：
 
 挂载创建好的PVC：myclaim-1到Pod上：
 
-```bash
+```Bash
 kind: Pod
 apiVersion: v1
 metadata:

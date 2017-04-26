@@ -20,7 +20,7 @@ keywords: [docker,云计算,kubernetes]
 
 ### 2 安装docker
 
-```bash
+```Bash
 tee /etc/yum.repos.d/docker.repo <<-'EOF'
 [dockerrepo]
 name=Docker Repository
@@ -46,7 +46,7 @@ systemctl enable docker.service
 
 建议使用`yumdownloader`下载rpm包，不然那下载速度，会让各位对玩k8s失去兴趣的。
 
-```bash
+```Bash
 yum install -y yum-utils
 
 cat <<EOF > /etc/yum.repos.d/kubernetes.repo
@@ -67,7 +67,7 @@ systemctl enable kubelet && systemctl start kubelet
 
 **非官方源安装**
 
-```bash
+```Bash
 #感谢mritd维护了一个yum源
 tee /etc/yum.repos.d/mritd.repo << EOF
 [mritdrepo]
@@ -84,7 +84,7 @@ systemctl enable kubelet && systemctl start kubelet
 
 **relese编译**
 
-```bash
+```Bash
 git clone https://github.com/kubernetes/release.git
 cd release/rpm
 ./docker-build.sh
@@ -112,7 +112,7 @@ kubernetes-1.5.0所需要的镜像：
 
 偷下懒吧，直接执行以下脚本：
 
-```bash
+```Bash
 #!/bin/bash
 images=(kube-proxy-amd64:v1.5.0 kube-discovery-amd64:1.0 kubedns-amd64:1.7 kube-scheduler-amd64:v1.5.0 kube-controller-manager-amd64:v1.5.0 kube-apiserver-amd64:v1.5.0 etcd-amd64:2.2.5 kube-dnsmasq-amd64:1.3 exechealthz-amd64:1.1 pause-amd64:3.0 kubernetes-dashboard-amd64:v1.5.0 
 nginx-ingress-controller:0.8.3)
@@ -127,7 +127,7 @@ done
 
 由于kubeadm和kubelet安装过程中会生成`/etc/kubernetes`目录，而`kubeadm init`会先检测该目录是否存在，所以我们先使用kubeadm初始化环境。
 
-```bash
+```Bash
 kubeadm reset && systemctl start kubelet
 kubeadm init --use-kubernetes-version v1.5.0 --pod-network-cidr=10.244.0.0/16
 ```
@@ -135,13 +135,13 @@ kubeadm init --use-kubernetes-version v1.5.0 --pod-network-cidr=10.244.0.0/16
 >说明：`--pod-network-cidr=10.244.0.0/16`是Flannel使用的网段，如果不打算使用Flannel的可以去掉该属性。如果有多网卡的，请根据实际情况配置`--api-advertise-addresses=<ip-address>`。
 
 如果出现`ebtables not found in system path`的错误，要先安装`ebtables`包，我安装的过程中未提示，该包系统已经自带了。
-```bash
+```Bash
 yum install -y ebtables
 ```
 
 安装过程大概2-3分钟，输出结果如下：
 
-```bash
+```Bash
 [kubeadm] WARNING: kubeadm is in alpha, please do not use it for production clusters.
 [preflight] Running pre-flight checks
 [init] Using Kubernetes version: v1.5.0
@@ -178,14 +178,14 @@ kubeadm join --token=de3d61.504a049ec342e135 172.16.1.101
 
 Master节点安装好了Minoin节点就简单了。
 
-```bash
+```Bash
 kubeadm reset && systemctl start kubelet
 kubeadm join --token=de3d61.504a049ec342e135 172.16.1.101
 ```
 
 输出结果如下：
 
-```bash
+```Bash
 [kubeadm] WARNING: kubeadm is in alpha, please do not use it for production clusters.
 [preflight] Running pre-flight checks
 [preflight] Starting the kubelet service
@@ -212,7 +212,7 @@ Run 'kubectl get nodes' on the master to see this machine join.
 ```
 
 安装完成后可以查看下状态：
-```bash
+```Bash
 [root@master ~]# kubectl get nodes
 NAME       STATUS         AGE
 master     Ready,master   6m
@@ -224,13 +224,13 @@ minion02   Ready          2m
 
 网络组件选择很多，可以根据自己的需要选择calico、weave、flannel，calico性能最好，weave和flannel差不多。[Addons](http://kubernetes.io/docs/admin/addons/)中有配置好的yaml。
 
-```bash
+```Bash
 kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 ```
 
 如果使用的物理机器是阿里的VPC，请使用下边这个脚本创建网络，原生的flannel镜像不支持VPC，创建后网络是正常，但是会创建多个虚拟网卡，重启节点后网络失效。
 
-```bash
+```Bash
 kubectl apply -f http://k8s.oss-cn-shanghai.aliyuncs.com/kube/flannel-vpc.yml
 ```
 
@@ -238,7 +238,7 @@ kubectl apply -f http://k8s.oss-cn-shanghai.aliyuncs.com/kube/flannel-vpc.yml
 
 检查各节点组件运行状态：
 
-```bash
+```Bash
 [root@master ~]# kubectl get po -n=kube-system -o wide
 NAME                                    READY     STATUS    RESTARTS   AGE       IP             NODE
 dummy-2088944543-md22p                  1/1       Running   0          17m        172.16.1.101   master
@@ -261,7 +261,7 @@ kube-scheduler-master                   1/1       Running   0          17m      
 
 下载kubernetes-dashboard.yaml
 
-```bash
+```Bash
 curl -O https://rawgit.com/kubernetes/dashboard/master/src/deploy/kubernetes-dashboard.yaml
 ```
 
@@ -408,7 +408,7 @@ spec:
 
 #### 9.2 部署Ingress
 
-```bash
+```Bash
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:

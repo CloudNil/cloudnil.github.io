@@ -18,14 +18,14 @@ keywords: [Linux,DNS]
 
 ### 2 安装配置BIND9
 
-```bash
+```Bash
 apt-get install bind9
 ```
 
 总共需要编辑2个文件，新增2个文件，如下：
 修改/etc/bind/named.conf.options，去掉forwarders的注释，其中的IP为网络营运商提供的DNS服务器，这里我们使用google的DNS。
 
-```bash
+```Bash
 forwarders { 
        8.8.8.8; 
        8.8.4.4; 
@@ -34,7 +34,7 @@ forwarders {
 
 修改/etc/bind/named.conf.local，在最后增加增加双向解析代码：
 
-```bash
+```Bash
 zone "mycloud.com" { 
      type master; 
      file "/etc/bind/db.mycloud.com"; 
@@ -50,7 +50,7 @@ zone "19.68.10.in-addr.arpa" {
 
 新增域名（mycloud.com）解析文件/etc/bind/db.mycloud.com，内容如下：
 
-```bash
+```Bash
 ; 
 ; BIND data file for dev sites 
 ; 
@@ -69,7 +69,7 @@ $TTL    604800
 
 新增IP地址反向解析文件/etc/bind/db.10.68.19，内容如下：
 
-```bash
+```Bash
 ; 
 ; BIND reverse data file for dev domains 
 ; 
@@ -87,7 +87,7 @@ $TTL    604800
 
 ### 3 重启BIND9服务
 
-```bash
+```Bash
 service bind9 restart
 ```
 
@@ -95,37 +95,37 @@ service bind9 restart
 
 修改每一台需要使用该DNS服务器的dns配置文件
 
-```bash
+```Bash
 sudo vi /etc/resolv.conf
 ```
 
 修改nameserver为上边配置好的DNS服务器IP
 
-```bash
+```Bash
 nameserver 10.68.19.61
 ```
 
 此修改在每次重启服务器后都会赔覆盖，可以修改配置文件
 
-```bash
+```Bash
 sudo vi /etc/resolvconf/resolv.conf.d/base 
 ```
 
 在其中增加一条
 
-```bash
+```Bash
 nameserver 10.68.19.61
 ```
 
 这样重启服务器后DNS配置依然有效，然后重启networking服务，刷新DNS缓存。
 
-```bash
+```Bash
 service networking restart
 ```
 
 ### 5 测试效果
 
-```bash
+```Bash
 root@controller:/etc/bind# nslookup 
 > baidu.com 
 Server:         10.68.19.61 

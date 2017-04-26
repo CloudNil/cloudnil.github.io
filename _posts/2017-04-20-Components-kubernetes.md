@@ -88,7 +88,7 @@ Flannel是由ConreOS主导设计的用于容器技术的覆盖网络（Overlay N
 
 原生的docker网络结构：docker在启动的时候会创建一个网桥docker0(172.17.0.0)，容器启动的时候会创建一对Veth pair，这个Veth pair成对出现用于链接容器与docker0网桥（可以将其理解成一根网线的两个插头，一头插在容器内改名为eth0，另一头插在宿主机的docker0网桥上），这样同一台宿主机上的容器就可以互相访问了，此时的路由表记录：
 
-```bash
+```Bash
 172.17.0.0     0.0.0.0         255.255.0.0       U     0      0        0 docker0
 ```
 
@@ -96,7 +96,7 @@ Flannel是由ConreOS主导设计的用于容器技术的覆盖网络（Overlay N
 
 Flannel来了之后，在每个宿主机上增加了个P2P的虚拟网卡flannel0(172.17.0.0)，一头对接docker0网桥，一头由Flanneld服务监听。Etcd管理着整个Flannel网络的子网分配，宿主机A和宿主机B分别用分到的子网`172.17.1.0`和`172.17.2.0`创建docker0网桥，然后又悄悄地修改了一下docker daemon的启动参数`--bip=172.17.1.1/24`，同时添加路由表记录：
 
-```bash
+```Bash
 #宿主机A
 172.17.0.0     0.0.0.0         255.255.0.0       U     0      0        0 flannel0
 172.17.1.0     0.0.0.0         255.255.255.0     U     0      0        0 docker0
@@ -165,7 +165,7 @@ DNS解析的A记录规则为：`my-svc.my-namespace.svc.cluster.local`，例如k
 
 POD实例创建后，其中的Container内的resolver.conf的配置如下：
 
-```bash
+```Bash
 search kube-system.svc.cluster.local svc.cluster.local cluster.local
 nameserver 10.96.0.10
 options timeout:1 rotate
