@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  kubernetes基础组件介绍
+title:  kubernetes基础组件概述
 categories: [docker,Cloud]
 date: 2017-04-20 10:58:30 +0800
 keywords: [docker,云计算,kubernetes]
@@ -100,7 +100,6 @@ Flannel来了之后，在每个宿主机上增加了个P2P的虚拟网卡flannel
 #宿主机A
 172.17.0.0     0.0.0.0         255.255.0.0       U     0      0        0 flannel0
 172.17.1.0     0.0.0.0         255.255.255.0     U     0      0        0 docker0
-
 #宿主机B
 172.17.0.0     0.0.0.0         255.255.0.0       U     0      0        0 flannel0
 172.17.2.0     0.0.0.0         255.255.255.0     U     0      0        0 docker0
@@ -122,7 +121,7 @@ Flannel来了之后，在每个宿主机上增加了个P2P的虚拟网卡flannel
 
 Flannel的Github上有张比较详细的原理图：
 
-<img src="/images/posts/2017-04-20-flannel.png" alt="Flannel" />
+![Flannel原理图](/images/posts/2017-04-20-flannel.png)
 
 图中的Flanneld运行在每个宿主机上，负责数据的发送、监听、封包、解包等任务。
 
