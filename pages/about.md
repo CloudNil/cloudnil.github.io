@@ -2,13 +2,13 @@
 layout: page
 title: About
 description: Nothing is impossible to a willing heart!
-keywords: VF, 可不勺子
+keywords: VF,可不勺子,史绍虎
 comments: true
 menu: 关于
 permalink: /about/
 ---
 
->网名：可不勺子，代号VF，生于上世纪八十年代中期。
+>史绍虎，80后IT男，网名：可不勺子，代号：VF。
 喜爱游泳、看片、打游戏、敲代码，属于工薪阶层的苦逼北漂一族。
 知识面虽广，却不一一精通。有技术危机感及强迫症，常常陷于无法学会所有IT技术的泥沼不能自拔。
 
