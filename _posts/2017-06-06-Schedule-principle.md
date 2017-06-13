@@ -16,7 +16,7 @@ keywords: [docker,云计算,kubernetes]
 
 ![Schedulet 调度原理2](/images/posts/2017-06-13-principe-2.jpg)
 
-### 调度策略
+### 1 调度策略
 
 Kubernetes的调度策略分为Predicates（预选策略）和Priorites（优选策略），整个调度过程分为两步：
 
@@ -24,7 +24,7 @@ Kubernetes的调度策略分为Predicates（预选策略）和Priorites（优选
 
 2.优选策略，在第一步筛选的基础上，按照优选策略为待选Node打分排序，获取最优者。
 
-#### 预选策略
+#### 1.1 预选策略
 
 随着版本的演进Kubernetes支持的Predicates策略逐渐丰富，v1.0版本仅支持4个策略，v1.7支持15个策略，Kubernetes（v1.7）中可用的Predicates策略有：
 
@@ -51,7 +51,7 @@ Kubernetes的调度策略分为Predicates（预选策略）和Priorites（优选
 - HostName
 - MatchNodeSelector
 
-#### 优选策略
+#### 1.2 优选策略
 
 同样，Priorites策略也在随着版本演进而丰富，v1.0版本仅支持3个策略，v1.7支持10个策略，每项策略都有对应权重，最终根据权重计算节点总分，Kubernetes（v1.7）中可用的Priorites策略有：
 
@@ -72,4 +72,6 @@ Kubernetes的调度策略分为Predicates（预选策略）和Priorites（优选
 - ImageLocalityPriority
 - MostRequestedPriority
 
-总的来说，Kubernetes的Scheduler调度器提供了如此大量的调度策略，灵活搭配使用它们，能够应对各种各样的需求场景。尤其是在大型集群环境中，优秀的调度策略和算法，可以为业务提供稳定高效的运行时环境。
+### 2 结语
+
+Kubernetes的Scheduler调度器提供了如此大量的调度策略，灵活搭配使用它们，能够应对各种各样的需求场景。尤其是在大型集群环境中，优秀的调度策略和算法，可以为业务提供稳定高效的运行时环境。
