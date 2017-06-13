@@ -10,11 +10,11 @@ keywords: [docker,云计算,kubernetes]
 
 调度是Kubernetes集群中进行容器编排工作最重要的一环，在Kubernetes中，Controller Manager负责创建Pod，Kubelet负责执行Pod，而Scheduler就是负责安排Pod到具体的Node，它通过API Server提供的接口监听Pod任务列表，获取待调度pod，然后根据一系列的预选策略和优选策略给各个Node节点打分，然后将Pod发送到得分最高的Node节点上，由kubelet负责执行具体的任务内容。架构流程如下：
 
-![Schedulet 调度原理1](2017-06-13-principe-1.jpg)
+![Schedulet 调度原理1](/images/posts/2017-06-13-principe-1.jpg)
 
 有个特例：如果Pod中指定了NodeName属性，则Scheduler调度器无需参与，Pod会直接发送到NodeName指定的Node节点：
 
-![Schedulet 调度原理2](2017-06-13-principe-2.jpg)
+![Schedulet 调度原理2](/images/posts/2017-06-13-principe-2.jpg)
 
 ### 调度策略
 
