@@ -40,7 +40,7 @@ spec:
 
 `Pod.spec.nodeSelector`是通过kubernetes的label-selector机制进行节点选择，由scheduler调度策略`MatchNodeSelector`进行label匹配，调度pod到目标节点，该匹配规则是强制约束。启用节点选择器的步骤为：
 
-1. Node添加label标记
+- Node添加label标记
 
 ```
 #标记规则：kubectl label nodes <node-name> <label-key>=<label-value>
@@ -52,7 +52,7 @@ NAME        STATUS    AGE       LABELS
 k8s.node1   Ready     29d       beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,cloudnil.com/role=dev,kubernetes.io/hostname=k8s.node1
 ```
 
-2. Pod定义中添加nodeSelector
+- Pod定义中添加nodeSelector
 
 ```yaml
 apiVersion: extensions/v1beta1
