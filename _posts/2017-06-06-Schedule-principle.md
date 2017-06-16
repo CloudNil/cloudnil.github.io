@@ -16,8 +16,6 @@ keywords: [docker,云计算,kubernetes]
 
 ![Schedulet 调度原理2](/images/posts/2017-06-13-principe-2.jpg)
 
->PS:想不通的是Scheduler被放在了plugin内，难道Kubernetes还可以不用Scheduler？
-
 ### 1 调度策略
 
 Kubernetes的调度策略分为Predicates（预选策略）和Priorites（优选策略），整个调度过程分为两步：
@@ -37,21 +35,23 @@ Kubernetes的调度策略分为Predicates（预选策略）和Priorites（优选
 - **NoDiskConflict**：检查在此主机上是否存在卷冲突。如果这个主机已经挂载了卷，其它同样使用这个卷的Pod不能调度到这个主机上，不同的存储后端具体规则不同
 - **NoVolumeZoneConflict**：检查给定的zone限制前提下，检查如果在此主机上部署Pod是否存在卷冲突
 - **PodToleratesNodeTaints**：确保pod定义的tolerates能接纳node定义的taints
-- **CheckNodeMemoryPressure**：检查主机的内存压力
-- **CheckNodeDiskPressure**：检查主机的存储压力
-- **MaxEBSVolumeCount**：确保已挂载的EBS存储卷不超过设置的最大值
-- **MaxGCEPDVolumeCount**：确保已挂载的GCE存储卷不超过设置的最大值
-- **MaxAzureDiskVolumeCount**：确保已挂载的Azure存储卷不超过设置的最大值
+- **CheckNodeMemoryPressure**：检查pod是否可以调度到已经报告了主机内存压力过大的节点
+- **CheckNodeDiskPressure**：检查pod是否可以调度到已经报告了主机的存储压力过大的节点
+- **MaxEBSVolumeCount**：确保已挂载的EBS存储卷不超过设置的最大值，默认39
+- **MaxGCEPDVolumeCount**：确保已挂载的GCE存储卷不超过设置的最大值，默认16
+- **MaxAzureDiskVolumeCount**：确保已挂载的Azure存储卷不超过设置的最大值，默认16
 - **MatchInterPodAffinity**：检查pod和其他pod是否符合亲和性规则
 - **GeneralPredicates**：检查pod与主机上kubernetes相关组件是否匹配
 - **NoVolumeNodeConflict**：检查给定的Node限制前提下，检查如果在此主机上部署Pod是否存在卷冲突
 
-默认加载的Predicates策略有：
+已注册但默认不加载的Predicates策略有：
 
 - PodFitsHostPorts
 - PodFitsResources
 - HostName
 - MatchNodeSelector
+
+>PS：此外还有个PodFitsPorts策略（计划停用），由PodFitsHostPorts替代
 
 #### 1.2 优选策略
 
@@ -62,17 +62,19 @@ Kubernetes的调度策略分为Predicates（预选策略）和Priorites（优选
 - **LeastRequestedPriority**：计算Pods需要的CPU和内存在当前节点可用资源的百分比，具有最小百分比的节点就是最优，得分计算公式：cpu((capacity – sum(requested)) * 10 / capacity) + memory((capacity – sum(requested)) * 10 / capacity) / 2
 - **BalancedResourceAllocation**：节点上各项资源（CPU、内存）使用率最均衡的为最优，得分计算公式：10 – abs(totalCpu/cpuNodeCapacity-totalMemory/memoryNodeCapacity)*10
 - **SelectorSpreadPriority**：按Service和Replicaset归属计算Node上分布最少的同类Pod数量，得分计算：数量越少得分越高
-- **NodePreferAvoidPodsPriority**：设置权重为10000，覆盖其他策略
+- **NodePreferAvoidPodsPriority**：判断alpha.kubernetes.io/preferAvoidPods属性，设置权重为10000，覆盖其他策略
 - **NodeAffinityPriority**：节点亲和性选择策略，提供两种选择器支持：requiredDuringSchedulingIgnoredDuringExecution（保证所选的主机必须满足所有Pod对主机的规则要求）、preferresDuringSchedulingIgnoredDuringExecution（调度器会尽量但不保证满足NodeSelector的所有要求）
-- **TaintTolerationPriority**：类似于Predicates策略中的PodToleratesNodeTaints，采用污点-容忍机制进行调度
+- **TaintTolerationPriority**：类似于Predicates策略中的PodToleratesNodeTaints，优先调度到标记了Taint的节点
 - **InterPodAffinityPriority**：pod亲和性选择策略，类似NodeAffinityPriority，提供两种选择器支持：requiredDuringSchedulingIgnoredDuringExecution（保证所选的主机必须满足所有Pod对主机的规则要求）、preferresDuringSchedulingIgnoredDuringExecution（调度器会尽量但不保证满足NodeSelector的所有要求），两个子策略：podAffinity和podAntiAffinity，后边会专门详解该策略
 - **MostRequestedPriority**：动态伸缩集群环境比较适用，会优先调度pod到使用率最高的主机节点，这样在伸缩集群时，就会腾出空闲机器，从而进行停机处理。
 
-默认加载的Priorites策略有：
+已注册但默认不加载的Priorites策略有：
 
 - EqualPriority
 - ImageLocalityPriority
 - MostRequestedPriority
+
+>PS：此外还有个ServiceSpreadingPriority策略（计划停用），由SelectorSpreadPriority替代
 
 ### 2 结语
 
