@@ -30,9 +30,9 @@ annotations:
 ...
 ```
 
-注释`Comment the following annotation if Dashboard must not be deployed on master`说的很清楚：如果Dashboard一定不要部署在master节点上，那就注释掉下下边的这段annotations定义。
+注释`Comment the following annotation if Dashboard must not be deployed on master`说的很清楚：如果Dashboard不想部署在master节点上，那就注释掉下下边的这段annotations定义。
 
-有的同学在部署Dashboard的时候就疑惑了，说注释写的怎么跟annotations定义是相反的，annotations的定义中说的是：如果Node节点上定义有key为dedicated，并且value为master的annotations，那就不调度Pod，那不注释这段定义才是不调度到master节点上。
+有的同学在部署Dashboard的时候就疑惑了，说注释写的怎么跟annotations定义是相反的，annotations的定义中说的是：如果Node节点上定义有key为dedicated，并且value为master的annotations，那就不调度Pod，如果注释掉这段代码，那岂不是把这个约束去掉了？
 
 单从annotations定义的字面意思来理解，似乎的确是这种说法，但是事实上，这是忽略一件事情，那就是`Taints`和`Tolerations`。
 
@@ -69,7 +69,7 @@ annotations:
 
 `operator`可以定义为：
 
-- Equal     表示key是否等于value
+- Equal     表示key是否等于value，默认
 - Exists    表示key是否存在，此时无需定义value
 
 `effect`可以定义为：
