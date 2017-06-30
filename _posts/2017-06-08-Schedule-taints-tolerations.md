@@ -84,3 +84,29 @@ Node和Pod上都可以定义多个Taints和Tolerations，Scheduler会根据具�
 - 如果Node中不存在影响策略为`NoSchedule`的Taint，但是存在一个或多个影响策略为`PreferNoSchedule`的Taint，该Pod会尽量不调度到该Node
 - 如果Node中存在一个或多个影响策略为`NoExecute`的Taint，该Pod不会被调度到该Node，并且会驱逐已经调度到该Node的Pod实例
 
+Pod上的Tolerations定义类似这样：
+
+```yaml
+
+#v1.6以前的的版本
+annotations:
+  scheduler.alpha.kubernetes.io/tolerations: |
+    [
+      {
+        "key": "xxx",
+        "operator": "Equal",
+        "value": "yyy",
+        "effect": "NoSchedule"
+      }
+    ]
+
+#v1.6+版本
+
+tolerations:
+- key: xxx
+  operator: Equal
+  value: yyy
+  effect: NoSchedule
+  
+```
+
