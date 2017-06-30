@@ -34,14 +34,14 @@ apt-get install libnih1=1.0.3-4ubuntu25 libnih-dbus1 mountall cgroup-lite docker
 
 ### 3 安装etcd集群
 
-使用了docker-compose安装，当然，如果闲麻烦，也可以直接docker run。
+使用了docker-compose安装，当然，如果觉得麻烦，也可以直接docker run。
 
 Master节点的ETCD的docker-compose.yml：
 
 ```yaml
 etcd:
   image: hub.lonhwin.com/coreos/etcd:v3.1.5
-  command: etcd --name etcd-srv1 --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://192.168.1.191:2379,http://192.168.1.191:2380 --initial-advertise-peer-urls http://192.168.1.191:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://192.168.1.191:2380,etcd-srv2=http://192.168.1.192:2380,etcd-srv3=http://192.168.1.193:2380" -initial-cluster-state new
+  command: etcd --name etcd-srv1 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://192.168.1.191:2379,http://192.168.1.191:2380 --initial-advertise-peer-urls http://192.168.1.191:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://192.168.1.191:2380,etcd-srv2=http://192.168.1.192:2380,etcd-srv3=http://192.168.1.193:2380" -initial-cluster-state new
   net: "bridge"
   ports:
   - "2379:2379"
@@ -49,6 +49,8 @@ etcd:
   restart: always
   stdin_open: true
   tty: true
+  volumes:
+  - /store/etcd:/var/etcd
 ```
 
 Node01节点的ETCD的docker-compose.yml：
@@ -56,7 +58,7 @@ Node01节点的ETCD的docker-compose.yml：
 ```yaml
 etcd:
   image: hub.lonhwin.com/coreos/etcd:v3.1.5
-  command: etcd --name etcd-srv2 --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://192.168.1.192:2379,http://192.168.1.192:2380 --initial-advertise-peer-urls http://192.168.1.192:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://192.168.1.191:2380,etcd-srv2=http://192.168.1.192:2380,etcd-srv3=http://192.168.1.193:2380" -initial-cluster-state new
+  command: etcd --name etcd-srv2 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://192.168.1.192:2379,http://192.168.1.192:2380 --initial-advertise-peer-urls http://192.168.1.192:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://192.168.1.191:2380,etcd-srv2=http://192.168.1.192:2380,etcd-srv3=http://192.168.1.193:2380" -initial-cluster-state new
   net: "bridge"
   ports:
   - "2379:2379"
@@ -64,6 +66,8 @@ etcd:
   restart: always
   stdin_open: true
   tty: true
+  volumes:
+  - /store/etcd:/var/etcd
 ```
 
 Node02节点的ETCD的docker-compose.yml：
@@ -71,7 +75,7 @@ Node02节点的ETCD的docker-compose.yml：
 ```yaml
 etcd:
   image: hub.lonhwin.com/coreos/etcd:v3.1.5
-  command: etcd --name etcd-srv3 --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://192.168.1.193:2379,http://192.168.1.193:2380 --initial-advertise-peer-urls http://192.168.1.193:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://192.168.1.191:2380,etcd-srv2=http://192.168.1.192:2380,etcd-srv3=http://192.168.1.193:2380" -initial-cluster-state new
+  command: etcd --name etcd-srv3 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://192.168.1.193:2379,http://192.168.1.193:2380 --initial-advertise-peer-urls http://192.168.1.193:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://192.168.1.191:2380,etcd-srv2=http://192.168.1.192:2380,etcd-srv3=http://192.168.1.193:2380" -initial-cluster-state new
   net: "bridge"
   ports:
   - "2379:2379"
@@ -79,6 +83,8 @@ etcd:
   restart: always
   stdin_open: true
   tty: true
+  volumes:
+  - /store/etcd:/var/etcd
 ```
 
 创建好docker-compose.yml文件后，使用命令`docker-compose up -d`部署。
@@ -102,8 +108,6 @@ dpkg -i kubelet_1.6.6-00_amd64.deb kubeadm_1.6.6-00_amd64.deb kubernetes-cni_0.5
 **官方源安装**
 
 跨越GFW方式不细说，你懂的。
-
-建议使用`yumdownloader`下载rpm包，不然那下载速度，会让各位对玩k8s失去兴趣的。
 
 ```Bash
 apt-get update && apt-get install -y apt-transport-https
@@ -145,15 +149,15 @@ kubernetes-1.6.6所需要的镜像：
 - kube-controller-manager-amd64:v1.6.6 
 - kube-apiserver-amd64:v1.6.6
 - kubernetes-dashboard-amd64:v1.6.1
-- k8s-dns-sidecar-amd64:1.14.1
-- k8s-dns-kube-dns-amd64:1.14.1
-- k8s-dns-dnsmasq-nanny-amd64:1.14.1
+- k8s-dns-sidecar-amd64:1.14.2
+- k8s-dns-kube-dns-amd64:1.14.2
+- k8s-dns-dnsmasq-nanny-amd64:1.14.2
 
 偷下懒吧，直接执行以下脚本：
 
 ```Bash
 #!/bin/bash
-images=(kube-proxy-amd64:v1.6.6 kube-scheduler-amd64:v1.6.6 kube-controller-manager-amd64:v1.6.6 kube-apiserver-amd64:v1.6.6 etcd-amd64:3.0.17 pause-amd64:3.0 kubernetes-dashboard-amd64:v1.6.1 k8s-dns-sidecar-amd64:1.14.1 k8s-dns-kube-dns-amd64:1.14.1 k8s-dns-dnsmasq-nanny-amd64:1.14.1)
+images=(kube-proxy-amd64:v1.6.6 kube-scheduler-amd64:v1.6.6 kube-controller-manager-amd64:v1.6.6 kube-apiserver-amd64:v1.6.6 etcd-amd64:3.0.17 pause-amd64:3.0 kubernetes-dashboard-amd64:v1.6.1 k8s-dns-sidecar-amd64:1.14.2 k8s-dns-kube-dns-amd64:1.14.2 k8s-dns-dnsmasq-nanny-amd64:1.14.2)
 for imageName in ${images[@]} ; do
   docker pull cloudnil/$imageName
   docker tag cloudnil/$imageName gcr.io/google_containers/$imageName
@@ -170,7 +174,7 @@ kubeadm reset
 kubeadm init --api-advertise-addresses=192.168.1.191 --use-kubernetes-version v1.6.6
 ```
 
-如果使用外部etcd集群，以前版本的`--external-etcd-endpoints`已经没有了，所以要使用--config参数外挂配置文件kubeadm-config.yml：
+如果使用外部etcd集群，以前的kubeadm版本的`--external-etcd-endpoints`参数已经没有了，所以要使用--config参数外挂配置文件kubeadm-config.yml：
 
 ```yaml
 apiVersion: kubeadm.k8s.io/v1alpha1
@@ -274,13 +278,13 @@ node02    NotReady   1h        v1.6.6
 
 ### 7 安装Calico网络
 
-网络组件选择很多，可以根据自己的需要选择calico、weave、flannel，calico性能最好，weave和flannel差不多。[Addons](http://kubernetes.io/docs/admin/addons/)中有配置好的yaml，部署环境使用的阿里云的VPC，官方提供的flannel.yaml创建的flannel网络有问题，所以本文中尝试calico网络，。
+网络组件选择很多，可以根据自己的需要选择calico、weave、flannel，calico性能最好，flannel的vxlan也不错，默认的UDP性能较差，weave的性能比较差，测试环境用下可以，生产环境不建议使用。[Addons](http://kubernetes.io/docs/admin/addons/)中有配置好的yaml，所以本文中尝试calico网络，。
 
 ```Bash
 kubectl apply -f http://docs.projectcalico.org/v2.3/getting-started/kubernetes/installation/hosted/kubeadm/1.6/calico.yaml
 ```
 
-如果使用了外部etcd，去掉其中以下内容，并修改`etcd_endpoints: [ETCD_ENDPOINTS]`：
+如果使用了外部etcd，去掉etcd相关配置内容，并修改`etcd_endpoints: [ETCD_ENDPOINTS]`：
 
 ```yaml
 # Calico Version v2.3.0
@@ -602,7 +606,7 @@ kube-scheduler-master                       1/1       Running   6          23m
 curl -O https://rawgit.com/kubernetes/dashboard/master/src/deploy/kubernetes-dashboard.yaml
 ```
 
-修改配置内容，部署到default的namespace，增加ingress配置，后边配置了nginx-ingress后就可以用了。
+修改配置内容，部署到default的namespace，增加ingress配置，后边配置了nginx-ingress后就可以直接绑定域名访问了。
 
 ```yaml
 apiVersion: v1
