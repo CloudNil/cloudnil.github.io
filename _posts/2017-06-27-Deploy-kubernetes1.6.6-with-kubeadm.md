@@ -6,7 +6,7 @@ date: 2017-06-27 10:58:30 +0800
 keywords: [docker,云计算,kubernetes]
 ---
 
->Kubernetes 1.6.6发布，调整部署文档。
+>Kubernetes 1.6.6发布，调整部署文档。本次部署基于Ubuntu16.04，并使用最新的docker版本：17.03。
 
 ### 1 环境准备
 
@@ -40,7 +40,7 @@ Master节点的ETCD的docker-compose.yml：
 
 ```yaml
 etcd:
-  image: hub.lonhwin.com/coreos/etcd:v3.1.5
+  image: quay.io/coreos/etcd:v3.1.5
   command: etcd --name etcd-srv1 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://192.168.1.191:2379,http://192.168.1.191:2380 --initial-advertise-peer-urls http://192.168.1.191:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://192.168.1.191:2380,etcd-srv2=http://192.168.1.192:2380,etcd-srv3=http://192.168.1.193:2380" -initial-cluster-state new
   net: "bridge"
   ports:
@@ -57,7 +57,7 @@ Node01节点的ETCD的docker-compose.yml：
 
 ```yaml
 etcd:
-  image: hub.lonhwin.com/coreos/etcd:v3.1.5
+  image: quay.io/coreos/etcd:v3.1.5
   command: etcd --name etcd-srv2 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://192.168.1.192:2379,http://192.168.1.192:2380 --initial-advertise-peer-urls http://192.168.1.192:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://192.168.1.191:2380,etcd-srv2=http://192.168.1.192:2380,etcd-srv3=http://192.168.1.193:2380" -initial-cluster-state new
   net: "bridge"
   ports:
@@ -74,7 +74,7 @@ Node02节点的ETCD的docker-compose.yml：
 
 ```yaml
 etcd:
-  image: hub.lonhwin.com/coreos/etcd:v3.1.5
+  image: quay.io/coreos/etcd:v3.1.5
   command: etcd --name etcd-srv3 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://192.168.1.193:2379,http://192.168.1.193:2380 --initial-advertise-peer-urls http://192.168.1.193:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://192.168.1.191:2380,etcd-srv2=http://192.168.1.192:2380,etcd-srv3=http://192.168.1.193:2380" -initial-cluster-state new
   net: "bridge"
   ports:
@@ -89,7 +89,7 @@ etcd:
 
 创建好docker-compose.yml文件后，使用命令`docker-compose up -d`部署。
 
->[docker-compose安装文档](https://docs.docker.com/compose/install/#alternative-install-options)
+>关于docker-compose的使用，可以参考：[docker-compose安装文档](https://docs.docker.com/compose/install/#alternative-install-options)。
 
 ### 3 安装k8s工具包
 
