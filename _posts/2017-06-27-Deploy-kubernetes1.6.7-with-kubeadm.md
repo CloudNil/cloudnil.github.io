@@ -1,12 +1,12 @@
 ---
 layout: post
-title:  kubeadm快速部署kubernetes1.6.6
+title:  kubeadm快速部署kubernetes1.6.7
 categories: [docker,Cloud]
-date: 2017-06-27 10:58:30 +0800
+date: 2017-07-10 10:58:30 +0800
 keywords: [docker,云计算,kubernetes]
 ---
 
->Kubernetes 1.6.6发布，调整部署文档。本次部署基于Ubuntu16.04，并使用最新的docker版本：17.03。
+>Kubernetes 1.6.7发布，调整部署文档。本次部署基于Ubuntu16.04，并使用最新的docker版本：17.06。
 
 ### 1 环境准备
 
@@ -27,7 +27,7 @@ add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(
 
 apt-get update && apt-upgrade
 
-apt-get install libnih1=1.0.3-4ubuntu25 libnih-dbus1 mountall cgroup-lite docker-ce=17.03.1~ce-0~ubuntu-xenial
+apt-get install libnih1=1.0.3-4ubuntu25 libnih-dbus1 mountall cgroup-lite docker-ce=17.06.0~ce-0~ubuntu-xenial
 ```
 
 >PS:如缺少libltdl7_2.4.6-0.1，可以手动下载安装:[libltdl7_2.4.6-0.1](http://archive.ubuntu.com/ubuntu/pool/main/libt/libtool/libltdl7_2.4.6-0.1_amd64.deb)
@@ -97,12 +97,12 @@ etcd:
 
 **博主提供**
 
-一些比较懒得同学:-D，可以直接从博主提供的位置下载RPM工具包安装，[下载地址](https://github.com/CloudNil/kubernetes-library/tree/master/rpm_x86_64/For_kubelet_1.6.6)。
+一些比较懒得同学:-D，可以直接从博主提供的位置下载RPM工具包安装，[下载地址](https://github.com/CloudNil/kubernetes-library/tree/master/rpm_x86_64/For_kubelet_1.6.7)。
 
 ```Bash
 #安装kubelet的依赖包
 apt-get install -y socat ebtables
-dpkg -i kubelet_1.6.6-00_amd64.deb kubeadm_1.6.6-00_amd64.deb kubernetes-cni_0.5.1-00_amd64.deb kubectl_1.6.6-00_amd64.deb
+dpkg -i kubelet_1.6.7-00_amd64.deb kubeadm_1.6.7-00_amd64.deb kubernetes-cni_0.5.1-00_amd64.deb kubectl_1.6.7-00_amd64.deb
 ```
 
 **官方源安装**
@@ -123,7 +123,7 @@ apt-get update
 apt-get install -y kubelet kubeadm kubernetes-cni kubectl
 ```
 
->默认安装最新的stable版本，可以根据需要指定安装版本`apt-get install -y kubeadm=1.6.6-00`，版本信息可以使用命令查看：`apt-cache madison kubeadm`。
+>默认安装最新的stable版本，可以根据需要指定安装版本`apt-get install -y kubeadm=1.6.7-00`，版本信息可以使用命令查看：`apt-cache madison kubeadm`。
 
 **relese编译**
 
@@ -138,26 +138,26 @@ docker run --volume="$(pwd)/debian:/src" debian-packager
 
 ### 4 下载docker镜像
 
-kubeadm方式安装kubernetes集群需要的镜像在docker官方镜像中并未提供，只能去google的官方镜像库：`gcr.io` 中下载，GFW咋办？翻墙!也可以使用docker hub做跳板自己构建，这里针对k8s-1.6.6我已经做好镜像，各位可以直接下载，dashboard的版本并未紧跟kubelet主线版本，用哪个版本都可以，本文使用kubernetes-dashboard-amd64:v1.6.1。
+kubeadm方式安装kubernetes集群需要的镜像在docker官方镜像中并未提供，只能去google的官方镜像库：`gcr.io` 中下载，GFW咋办？翻墙!也可以使用docker hub做跳板自己构建，这里针对k8s-1.6.7我已经做好镜像，各位可以直接下载，dashboard的版本并未紧跟kubelet主线版本，用哪个版本都可以，本文使用kubernetes-dashboard-amd64:v1.6.1。
 
-kubernetes-1.6.6所需要的镜像：
+kubernetes-1.6.7所需要的镜像：
 
 - etcd-amd64:3.0.17
 - pause-amd64:3.0
-- kube-proxy-amd64:v1.6.6 
-- kube-scheduler-amd64:v1.6.6
-- kube-controller-manager-amd64:v1.6.6 
-- kube-apiserver-amd64:v1.6.6
+- kube-proxy-amd64:v1.6.7 
+- kube-scheduler-amd64:v1.6.7
+- kube-controller-manager-amd64:v1.6.7 
+- kube-apiserver-amd64:v1.6.7
 - kubernetes-dashboard-amd64:v1.6.1
-- k8s-dns-sidecar-amd64:1.14.2
-- k8s-dns-kube-dns-amd64:1.14.2
-- k8s-dns-dnsmasq-nanny-amd64:1.14.2
+- k8s-dns-sidecar-amd64:1.14.4
+- k8s-dns-kube-dns-amd64:1.14.4
+- k8s-dns-dnsmasq-nanny-amd64:1.14.4
 
 偷下懒吧，直接执行以下脚本：
 
 ```Bash
 #!/bin/bash
-images=(kube-proxy-amd64:v1.6.6 kube-scheduler-amd64:v1.6.6 kube-controller-manager-amd64:v1.6.6 kube-apiserver-amd64:v1.6.6 etcd-amd64:3.0.17 pause-amd64:3.0 kubernetes-dashboard-amd64:v1.6.1 k8s-dns-sidecar-amd64:1.14.2 k8s-dns-kube-dns-amd64:1.14.2 k8s-dns-dnsmasq-nanny-amd64:1.14.2)
+images=(kube-proxy-amd64:v1.6.7 kube-scheduler-amd64:v1.6.7 kube-controller-manager-amd64:v1.6.7 kube-apiserver-amd64:v1.6.7 etcd-amd64:3.0.17 pause-amd64:3.0 kubernetes-dashboard-amd64:v1.6.1 k8s-dns-sidecar-amd64:1.14.4 k8s-dns-kube-dns-amd64:1.14.4 k8s-dns-dnsmasq-nanny-amd64:1.14.4)
 for imageName in ${images[@]} ; do
   docker pull cloudnil/$imageName
   docker tag cloudnil/$imageName gcr.io/google_containers/$imageName
@@ -171,7 +171,7 @@ done
 
 ```Bash
 kubeadm reset
-kubeadm init --api-advertise-addresses=192.168.1.191 --use-kubernetes-version v1.6.6
+kubeadm init --api-advertise-addresses=192.168.1.191 --use-kubernetes-version v1.6.7
 ```
 
 如果使用外部etcd集群，以前的kubeadm版本的`--external-etcd-endpoints`参数已经没有了，所以要使用--config参数外挂配置文件kubeadm-config.yml：
@@ -186,7 +186,7 @@ etcd:
   - http://192.168.1.191:2379
   - http://192.168.1.192:2379
   - http://192.168.1.193:2379
-kubernetesVersion: v1.6.6
+kubernetesVersion: v1.6.7
 ```
 
 初始化指令：
@@ -202,7 +202,7 @@ kubeadm init --config kubeadm-config.yml
 ```Bash
 [kubeadm] WARNING: kubeadm is in alpha, please do not use it for production clusters.
 [preflight] Running pre-flight checks
-[init] Using Kubernetes version: v1.6.6
+[init] Using Kubernetes version: v1.6.7
 [tokens] Generated token: "064158.548b9ddb1d3fad3e"
 [certificates] Generated Certificate Authority key and certificate.
 [certificates] Generated API Server key and certificate
@@ -251,7 +251,7 @@ kubeadm join --token=de3d61.504a049ec342e135 192.168.1.191
 [discovery] Cluster info object received, verifying signature using given token
 [discovery] Cluster info signature and contents are valid, will use API endpoints [https://192.168.1.191:6443]
 [bootstrap] Trying to connect to endpoint https://192.168.1.191:6443
-[bootstrap] Detected server version: v1.6.6
+[bootstrap] Detected server version: v1.6.7
 [bootstrap] Successfully established connection with endpoint "https://192.168.1.191:6443"
 [csr] Created API client to obtain unique certificate for this node, generating keys and certificate signing request
 [csr] Received signed certificate from the API server:
@@ -271,9 +271,9 @@ Run 'kubectl get nodes' on the master to see this machine join.
 安装完成后可以查看下状态，未安装网络组件，所以全部都是NotReady状态：
 ```Bash
 NAME      STATUS     AGE       VERSION
-master    NotReady   1h        v1.6.6
-node01    NotReady   1h        v1.6.6
-node02    NotReady   1h        v1.6.6
+master    NotReady   1h        v1.6.7
+node01    NotReady   1h        v1.6.7
+node02    NotReady   1h        v1.6.7
 ```
 
 ### 7 安装Calico网络
@@ -878,7 +878,10 @@ kubectl -n kube-system get secret clusterinfo -o yaml | grep token-map | awk '{p
 
 #### 10.6 Api-server启动时localhost解析的问题
 
-kubeadm v1.6.6 中创建api-server的时候，会去解析localhost访问，这个解析会优先使用DNS解析而不是/etc/hosts中的配置，所以，如果碰到使用的DNS服务器比较二，解析了localhost，就会出现错误：`Unable to perform initial IP allocation check: unable to refresh the service IP block: Get https://localhost:6443/api/v1/services: dial tcp 220.165.8.172:6443: getsockopt: connection refused`。
+kubeadm v1.6.7 中创建api-server的时候，会去解析localhost访问，这个解析会优先使用DNS解析而不是/etc/hosts中的配置，所以，如果碰到使用的DNS服务器比较二，解析了localhost，就会出现错误：
+```
+Unable to perform initial IP allocation check: unable to refresh the service IP block: Get https://localhost:6443/api/v1/services: dial tcp 220.165.8.172:6443: getsockopt: connection refused
+```
 
 我的环境中使用的DNS服务就属于比较二的，在物理机上执行`nslookup localhost`，得到解析结果为：220.165.8.172，结果api-server启动的时候，解析localhost就出问题了，这个Bug会在v1.7中修复。
 
@@ -888,4 +891,28 @@ kubectl默认应该是会加载配置文件：`/etc/kubernetes/admin.conf`，但
 
 #### 10.8 KUBE_REPO_PREFIX配置
 
-如果使用了KUBE_REPO_PREFIX配置官方镜像包的仓库位置，此配置对pause-amd64不会生效，还是要在每台机器上下载gcr.io/google_containers/pause-amd64。
+如果使用了KUBE_REPO_PREFIX配置官方镜像包的仓库位置，此配置对pause-amd64不会生效，可以配置kubelet的启动参数，如下：
+
+```bash
+cat > /etc/systemd/system/kubelet.service.d/20-pod-infra-image.conf <<EOF
+[Service]
+Environment="KUBELET_EXTRA_ARGS=--pod-infra-container-image=[pause镜像]"
+EOF
+systemctl daemon-reload
+systemctl restart kubelet
+```
+
+#### 10.9 修改static pod后pod无法启动
+
+修改了`/etc/kubernetes/manifests`下的pod定义文件，会导致pod无法启动，例如，修改了`kube-controller-manager.yaml`的内容，kube-controller-manager会无法启动，查看日志中有报错信息：
+
+```bash
+Jul  6 16:40:35 master kubelet[1051]: E0706 16:40:35.186147    1051 file_linux.go:113] can't process config file "/etc/kubernetes/manifests/.kube-controller-manager.yaml.swp": /etc/kubernetes/manifests/.kube-controller-manager.yaml.swp: read 'b0VIM 7.4
+Jul  6 16:40:35 master kubelet[1051]: E0706 16:40:35.186193    1051 file_linux.go:113] can't process config file "/etc/kubernetes/manifests/.kube-controller-manager.yaml.swx": open /etc/kubernetes/manifests/.kube-controller-manager.yaml.swx: no such file or directory
+Jul  6 16:40:35 master kubelet[1051]: E0706 16:40:35.186281    1051 file_linux.go:113] can't process config file "/etc/kubernetes/manifests/.kube-controller-manager.yaml.swp": /etc/kubernetes/manifests/.kube-controller-manager.yaml.swp: read 'b0VIM 7.4
+Jul  6 16:40:35 master kubelet[1051]: E0706 16:40:35.186357    1051 file_linux.go:113] can't process config file "/etc/kubernetes/manifests/.kube-controller-manager.yaml.swp": /etc/kubernetes/manifests/.kube-controller-manager.yaml.swp: read 'b0VIM 7.4
+Jul  6 16:40:39 master kubelet[1051]: E0706 16:40:39.221561    1051 file_linux.go:113] can't process config file "/etc/kubernetes/manifests/.kube-controller-manager.yaml.swp": /etc/kubernetes/manifests/.kube-controller-manager.yaml.swp: read 'b0VIM 7.4
+Jul  6 16:40:41 master kubelet[1051]: E0706 16:40:41.762270    1051 file.go:72] unable to read config path "/etc/kubernetes/manifests": error while processing event ("/etc/kubernetes/manifests/kube-controller-manager.yaml": 0x40 == IN_MOVED_FROM): the pod with key kube-system/kube-controller-manager-master doesn't exist in cache
+```
+
+解决办法：`service kubelet restart`，该BUG会在1.7+版本中修复。
