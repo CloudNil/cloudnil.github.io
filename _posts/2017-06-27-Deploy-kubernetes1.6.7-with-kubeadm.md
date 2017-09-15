@@ -27,7 +27,7 @@ add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(
 
 apt-get update && apt-upgrade
 
-apt-get install libnih1=1.0.3-4ubuntu25 libnih-dbus1 mountall cgroup-lite docker-ce=17.06.0~ce-0~ubuntu-xenial
+apt-get install aufs-tools docker-ce=17.06.0~ce-0~ubuntu-xenial
 ```
 
 >PS:如缺少libltdl7_2.4.6-0.1，可以手动下载安装:[libltdl7_2.4.6-0.1](http://archive.ubuntu.com/ubuntu/pool/main/libt/libtool/libltdl7_2.4.6-0.1_amd64.deb)
@@ -97,7 +97,7 @@ etcd:
 
 **博主提供**
 
-一些比较懒得同学:-D，可以直接从博主提供的位置下载RPM工具包安装，[下载地址](https://github.com/CloudNil/kubernetes-library/tree/master/rpm_x86_64/For_kubelet_1.6.7)。
+一些比较懒得同学:-D，可以直接从博主提供的位置下载RPM工具包安装，[下载地址](https://github.com/CloudNil/kubernetes-library/tree/v1.6.7/rpm_x86_64/For_kubelet_1.6.7)。
 
 ```Bash
 #安装kubelet的依赖包
