@@ -1,22 +1,22 @@
 ---
 layout: post
-title:  kubeadm快速部署kubernetes1.6.7
+title:  kubeadm快速部署kubernetes1.7.6
 categories: [docker,Cloud]
-date: 2017-07-10 10:58:30 +0800
+date: 2017-09-20 10:58:30 +0800
 keywords: [docker,云计算,kubernetes]
 ---
 
->Kubernetes 1.6.7发布，调整部署文档。本次部署基于Ubuntu16.04，并使用最新的docker版本：17.06。
+>Kubernetes 1.7.6发布，调整部署文档。本次部署基于Ubuntu16.04，并使用最新的docker版本：17.06。
 
 ### 1 环境准备
 
 准备了三台机器作安装测试工作，机器信息如下: 
 
-|       IP      |  Name  |       Role      |      OS     |
-|---------------|--------|-----------------|-------------|
-| 192.168.1.191 | Master | Controller,etcd | Ubuntu16.04 |
-| 192.168.1.192 | Node01 | Compute,etcd    | Ubuntu16.04 |
-| 192.168.1.193 | Node02 | Compute,etcd    | Ubuntu16.04 |
+|      IP     |  Name  |       Role      |      OS     |
+|-------------|--------|-----------------|-------------|
+| 172.16.2.1  | Master | Controller,etcd | Ubuntu16.04 |
+| 172.16.2.11 | Node01 | Compute,etcd    | Ubuntu16.04 |
+| 172.16.2.12 | Node02 | Compute,etcd    | Ubuntu16.04 |
 
 ### 2 安装docker
 
@@ -27,10 +27,8 @@ add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(
 
 apt-get update && apt-upgrade
 
-apt-get install aufs-tools docker-ce=17.06.0~ce-0~ubuntu-xenial
+apt-get install docker-ce=17.06.0~ce-0~ubuntu
 ```
-
->PS:如缺少libltdl7_2.4.6-0.1，可以手动下载安装:[libltdl7_2.4.6-0.1](http://archive.ubuntu.com/ubuntu/pool/main/libt/libtool/libltdl7_2.4.6-0.1_amd64.deb)
 
 ### 3 安装etcd集群
 
@@ -40,8 +38,8 @@ Master节点的ETCD的docker-compose.yml：
 
 ```yaml
 etcd:
-  image: quay.io/coreos/etcd:v3.1.5
-  command: etcd --name etcd-srv1 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://192.168.1.191:2379,http://192.168.1.191:2380 --initial-advertise-peer-urls http://192.168.1.191:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://192.168.1.191:2380,etcd-srv2=http://192.168.1.192:2380,etcd-srv3=http://192.168.1.193:2380" -initial-cluster-state new
+  image: hub.lonhcloud.com/coreos/etcd:v3.1.5
+  command: etcd --name etcd-srv1 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.1:2379,http://172.16.2.1:2380 --initial-advertise-peer-urls http://172.16.2.1:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.2:2380,etcd-srv3=http://172.16.2.3:2380" -initial-cluster-state new
   net: "bridge"
   ports:
   - "2379:2379"
@@ -58,7 +56,7 @@ Node01节点的ETCD的docker-compose.yml：
 ```yaml
 etcd:
   image: quay.io/coreos/etcd:v3.1.5
-  command: etcd --name etcd-srv2 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://192.168.1.192:2379,http://192.168.1.192:2380 --initial-advertise-peer-urls http://192.168.1.192:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://192.168.1.191:2380,etcd-srv2=http://192.168.1.192:2380,etcd-srv3=http://192.168.1.193:2380" -initial-cluster-state new
+  command: etcd --name etcd-srv2 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.2:2379,http://172.16.2.2:2380 --initial-advertise-peer-urls http://172.16.2.2:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.2:2380,etcd-srv3=http://172.16.2.3:2380" -initial-cluster-state new
   net: "bridge"
   ports:
   - "2379:2379"
@@ -75,7 +73,7 @@ Node02节点的ETCD的docker-compose.yml：
 ```yaml
 etcd:
   image: quay.io/coreos/etcd:v3.1.5
-  command: etcd --name etcd-srv3 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://192.168.1.193:2379,http://192.168.1.193:2380 --initial-advertise-peer-urls http://192.168.1.193:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://192.168.1.191:2380,etcd-srv2=http://192.168.1.192:2380,etcd-srv3=http://192.168.1.193:2380" -initial-cluster-state new
+  command: etcd --name etcd-srv3 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.3:2379,http://172.16.2.3:2380 --initial-advertise-peer-urls http://172.16.2.3:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.2:2380,etcd-srv3=http://172.16.2.3:2380" -initial-cluster-state new
   net: "bridge"
   ports:
   - "2379:2379"
@@ -97,12 +95,12 @@ etcd:
 
 **博主提供**
 
-一些比较懒得同学:-D，可以直接从博主提供的位置下载RPM工具包安装，[下载地址](https://github.com/CloudNil/kubernetes-library/tree/v1.6.7/package)。
+一些比较懒得同学:-D，可以直接从博主提供的位置下载RPM工具包安装，[下载地址](https://github.com/CloudNil/kubernetes-library/tree/master/package)。
 
 ```Bash
 #安装kubelet的依赖包
 apt-get install -y socat ebtables
-dpkg -i kubelet_1.6.7-00_amd64.deb kubeadm_1.6.7-00_amd64.deb kubernetes-cni_0.5.1-00_amd64.deb kubectl_1.6.7-00_amd64.deb
+dpkg -i kubelet_1.7.6-00_amd64.deb kubeadm_1.7.6-00_amd64.deb kubernetes-cni_0.5.1-00_amd64.deb kubectl_1.7.6-00_amd64.deb
 ```
 
 **官方源安装**
@@ -123,7 +121,7 @@ apt-get update
 apt-get install -y kubelet kubeadm kubernetes-cni kubectl
 ```
 
->默认安装最新的stable版本，可以根据需要指定安装版本`apt-get install -y kubeadm=1.6.7-00`，版本信息可以使用命令查看：`apt-cache madison kubeadm`。
+>默认安装最新的stable版本，可以根据需要指定安装版本`apt-get install -y kubeadm=1.7.6-00`，版本信息可以使用命令查看：`apt-cache madison kubeadm`。
 
 **relese编译**
 
@@ -138,17 +136,17 @@ docker run --volume="$(pwd)/debian:/src" debian-packager
 
 ### 4 下载docker镜像
 
-kubeadm方式安装kubernetes集群需要的镜像在docker官方镜像中并未提供，只能去google的官方镜像库：`gcr.io` 中下载，GFW咋办？翻墙!也可以使用docker hub做跳板自己构建，这里针对k8s-1.6.7我已经做好镜像，各位可以直接下载，dashboard的版本并未紧跟kubelet主线版本，用哪个版本都可以，本文使用kubernetes-dashboard-amd64:v1.6.1。
+kubeadm方式安装kubernetes集群需要的镜像在docker官方镜像中并未提供，只能去google的官方镜像库：`gcr.io` 中下载，GFW咋办？翻墙!也可以使用docker hub做跳板自己构建，这里针对k8s-1.7.6我已经做好镜像，各位可以直接下载，dashboard的版本并未紧跟kubelet主线版本，用哪个版本都可以，本文使用kubernetes-dashboard-amd64:v1.7.0。
 
-kubernetes-1.6.7所需要的镜像：
+kubernetes-1.7.6所需要的镜像：
 
 - etcd-amd64:3.0.17
 - pause-amd64:3.0
-- kube-proxy-amd64:v1.6.7 
-- kube-scheduler-amd64:v1.6.7
-- kube-controller-manager-amd64:v1.6.7 
-- kube-apiserver-amd64:v1.6.7
-- kubernetes-dashboard-amd64:v1.6.1
+- kube-proxy-amd64:v1.7.6 
+- kube-scheduler-amd64:v1.7.6
+- kube-controller-manager-amd64:v1.7.6 
+- kube-apiserver-amd64:v1.7.6
+- kubernetes-dashboard-amd64:v1.7.0
 - k8s-dns-sidecar-amd64:1.14.4
 - k8s-dns-kube-dns-amd64:1.14.4
 - k8s-dns-dnsmasq-nanny-amd64:1.14.4
@@ -157,7 +155,7 @@ kubernetes-1.6.7所需要的镜像：
 
 ```Bash
 #!/bin/bash
-images=(kube-proxy-amd64:v1.6.7 kube-scheduler-amd64:v1.6.7 kube-controller-manager-amd64:v1.6.7 kube-apiserver-amd64:v1.6.7 etcd-amd64:3.0.17 pause-amd64:3.0 kubernetes-dashboard-amd64:v1.6.1 k8s-dns-sidecar-amd64:1.14.4 k8s-dns-kube-dns-amd64:1.14.4 k8s-dns-dnsmasq-nanny-amd64:1.14.4)
+images=(kube-proxy-amd64:v1.7.6 kube-scheduler-amd64:v1.7.6 kube-controller-manager-amd64:v1.7.6 kube-apiserver-amd64:v1.7.6 etcd-amd64:3.0.17 pause-amd64:3.0 kubernetes-dashboard-amd64:v1.6.1 k8s-dns-sidecar-amd64:1.14.4 k8s-dns-kube-dns-amd64:1.14.4 k8s-dns-dnsmasq-nanny-amd64:1.14.4)
 for imageName in ${images[@]} ; do
   docker pull cloudnil/$imageName
   docker tag cloudnil/$imageName gcr.io/google_containers/$imageName
@@ -171,7 +169,7 @@ done
 
 ```Bash
 kubeadm reset
-kubeadm init --api-advertise-addresses=192.168.1.191 --use-kubernetes-version v1.6.7
+kubeadm init --api-advertise-addresses=172.16.2.1 --use-kubernetes-version v1.7.6
 ```
 
 如果使用外部etcd集群，以前的kubeadm版本的`--external-etcd-endpoints`参数已经没有了，所以要使用--config参数外挂配置文件kubeadm-config.yml：
@@ -180,13 +178,13 @@ kubeadm init --api-advertise-addresses=192.168.1.191 --use-kubernetes-version v1
 apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
 api:
-  advertiseAddress: 192.168.1.191
+  advertiseAddress: 172.16.2.1
 etcd:
   endpoints:
-  - http://192.168.1.191:2379
-  - http://192.168.1.192:2379
-  - http://192.168.1.193:2379
-kubernetesVersion: v1.6.7
+  - http://172.16.2.1:2379
+  - http://172.16.2.2:2379
+  - http://172.16.2.3:2379
+kubernetesVersion: v1.7.6
 ```
 
 初始化指令：
@@ -202,7 +200,7 @@ kubeadm init --config kubeadm-config.yml
 ```Bash
 [kubeadm] WARNING: kubeadm is in alpha, please do not use it for production clusters.
 [preflight] Running pre-flight checks
-[init] Using Kubernetes version: v1.6.7
+[init] Using Kubernetes version: v1.7.6
 [tokens] Generated token: "064158.548b9ddb1d3fad3e"
 [certificates] Generated Certificate Authority key and certificate.
 [certificates] Generated API Server key and certificate
@@ -228,7 +226,7 @@ Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
 
 You can now join any number of machines by running the following on each node:
 
-kubeadm join --token=de3d61.504a049ec342e135 192.168.1.191
+kubeadm join --token=de3d61.504a049ec342e135 172.16.2.1
 ```
 
 ### 6 安装Node节点
@@ -237,7 +235,7 @@ Master节点安装好了Node节点就简单了。
 
 ```Bash
 kubeadm reset
-kubeadm join --token=de3d61.504a049ec342e135 192.168.1.191
+kubeadm join --token=de3d61.504a049ec342e135 172.16.2.1
 ```
 
 输出结果如下：
@@ -247,12 +245,12 @@ kubeadm join --token=de3d61.504a049ec342e135 192.168.1.191
 [preflight] Running pre-flight checks
 [preflight] Starting the kubelet service
 [tokens] Validating provided token
-[discovery] Created cluster info discovery client, requesting info from "http://192.168.1.191:9898/cluster-info/v1/?token-id=f11877"
+[discovery] Created cluster info discovery client, requesting info from "http://172.16.2.1:9898/cluster-info/v1/?token-id=f11877"
 [discovery] Cluster info object received, verifying signature using given token
-[discovery] Cluster info signature and contents are valid, will use API endpoints [https://192.168.1.191:6443]
-[bootstrap] Trying to connect to endpoint https://192.168.1.191:6443
-[bootstrap] Detected server version: v1.6.7
-[bootstrap] Successfully established connection with endpoint "https://192.168.1.191:6443"
+[discovery] Cluster info signature and contents are valid, will use API endpoints [https://172.16.2.1:6443]
+[bootstrap] Trying to connect to endpoint https://172.16.2.1:6443
+[bootstrap] Detected server version: v1.7.6
+[bootstrap] Successfully established connection with endpoint "https://172.16.2.1:6443"
 [csr] Created API client to obtain unique certificate for this node, generating keys and certificate signing request
 [csr] Received signed certificate from the API server:
 Issuer: CN=kubernetes | Subject: CN=system:node:yournode | CA: false
@@ -269,11 +267,12 @@ Run 'kubectl get nodes' on the master to see this machine join.
 ```
 
 安装完成后可以查看下状态，未安装网络组件，所以全部都是NotReady状态：
+
 ```Bash
 NAME      STATUS     AGE       VERSION
-master    NotReady   1h        v1.6.7
-node01    NotReady   1h        v1.6.7
-node02    NotReady   1h        v1.6.7
+master    NotReady   1h        v1.7.6
+node01    NotReady   1h        v1.7.6
+node02    NotReady   1h        v1.7.6
 ```
 
 ### 7 安装Calico网络
@@ -281,18 +280,18 @@ node02    NotReady   1h        v1.6.7
 网络组件选择很多，可以根据自己的需要选择calico、weave、flannel，calico性能最好，flannel的vxlan也不错，默认的UDP性能较差，weave的性能比较差，测试环境用下可以，生产环境不建议使用。[Addons](http://kubernetes.io/docs/admin/addons/)中有配置好的yaml，所以本文中尝试calico网络，。
 
 ```Bash
-kubectl apply -f http://docs.projectcalico.org/v2.3/getting-started/kubernetes/installation/hosted/kubeadm/1.6/calico.yaml
+kubectl apply -f https://docs.projectcalico.org/v2.5/getting-started/kubernetes/installation/hosted/kubeadm/1.6/calico.yaml
 ```
 
 如果使用了外部etcd，去掉etcd相关配置内容，并修改`etcd_endpoints: [ETCD_ENDPOINTS]`：
 
 ```yaml
-# Calico Version v2.3.0
-# http://docs.projectcalico.org/v2.3/releases#v2.3.0
+# Calico Version v2.5.1
+# https://docs.projectcalico.org/v2.5/releases#v2.5.1
 # This manifest includes the following component versions:
-#   calico/node:v1.3.0
-#   calico/cni:v1.9.1
-#   calico/kube-policy-controller:v0.6.0
+#   calico/node:v2.5.1
+#   calico/cni:v1.10.0
+#   calico/kube-policy-controller:v0.7.0
 
 # This ConfigMap is used to configure a self-hosted Calico installation.
 kind: ConfigMap
@@ -302,7 +301,7 @@ metadata:
   namespace: kube-system
 data:
   # The location of your etcd cluster.  This uses the Service clusterIP defined below.
-  etcd_endpoints: "http://192.168.1.191:2379,http://192.168.1.192:2379,http://192.168.1.193:2379"
+  etcd_endpoints: "http://172.16.2.1:2379,http://172.16.2.2:2379,http://172.16.2.3:2379"
 
   # Configure the Calico backend to use.
   calico_backend: "bird"
@@ -315,6 +314,7 @@ data:
         "type": "calico",
         "etcd_endpoints": "__ETCD_ENDPOINTS__",
         "log_level": "info",
+        "mtu": 1500,
         "ipam": {
             "type": "calico-ipam"
         },
@@ -327,7 +327,9 @@ data:
             "kubeconfig": "/etc/cni/net.d/__KUBECONFIG_FILENAME__"
         }
     }
+
 ---
+
 # This manifest installs the calico/node container, as well
 # as the Calico CNI plugins and network config on
 # each master and worker node in a Kubernetes cluster.
@@ -366,7 +368,7 @@ spec:
         # container programs network policy and routes on each
         # host.
         - name: calico-node
-          image: quay.io/calico/node:v1.3.0
+          image: quay.io/calico/node:v2.5.1
           env:
             # The location of the Calico etcd cluster.
             - name: ETCD_ENDPOINTS
@@ -380,6 +382,9 @@ spec:
                 configMapKeyRef:
                   name: calico-config
                   key: calico_backend
+            # Cluster type to identify the deployment type
+            - name: CLUSTER_TYPE
+              value: "kubeadm,bgp"
             # Disable file logging so `kubectl logs` works.
             - name: CALICO_DISABLE_FILE_LOGGING
               value: "true"
@@ -394,17 +399,34 @@ spec:
             # Disable IPv6 on Kubernetes.
             - name: FELIX_IPV6SUPPORT
               value: "false"
+            # Set MTU for tunnel device used if ipip is enabled
+            - name: FELIX_IPINIPMTU
+              value: "1440"
             # Set Felix logging to "info"
             - name: FELIX_LOGSEVERITYSCREEN
               value: "info"
             # Auto-detect the BGP IP address.
             - name: IP
               value: ""
+            - name: FELIX_HEALTHENABLED
+              value: "true"
           securityContext:
             privileged: true
           resources:
             requests:
               cpu: 250m
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 9099
+            periodSeconds: 10
+            initialDelaySeconds: 10
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 9099
+            periodSeconds: 10
           volumeMounts:
             - mountPath: /lib/modules
               name: lib-modules
@@ -415,7 +437,7 @@ spec:
         # This container installs the Calico CNI binaries
         # and CNI network config file on each node.
         - name: install-cni
-          image: quay.io/calico/cni:v1.9.1
+          image: quay.io/calico/cni:v1.10.0
           command: ["/install-cni.sh"]
           env:
             # The location of the Calico etcd cluster.
@@ -492,7 +514,7 @@ spec:
       serviceAccountName: calico-policy-controller
       containers:
         - name: calico-policy-controller
-          image: quay.io/calico/kube-policy-controller:v0.6.0
+          image: quay.io/calico/kube-policy-controller:v0.7.0
           env:
             # The location of the Calico etcd cluster.
             - name: ETCD_ENDPOINTS
@@ -538,6 +560,8 @@ rules:
 ---
 apiVersion: v1
 kind: ServiceAccount
+imagePullSecrets:
+- name: hub.lonhcloud.com
 metadata:
   name: calico-cni-plugin
   namespace: kube-system
@@ -574,6 +598,8 @@ rules:
 ---
 apiVersion: v1
 kind: ServiceAccount
+imagePullSecrets:
+- name: hub.lonhcloud.com
 metadata:
   name: calico-policy-controller
   namespace: kube-system
@@ -652,7 +678,7 @@ spec:
     spec:
       containers:
       - name: kubernetes-dashboard
-        image: gcr.io/google_containers/kubernetes-dashboard-amd64:v1.6.1
+        image: gcr.io/google_containers/kubernetes-dashboard-amd64:v1.7.0
         ports:
         - containerPort: 9090
           protocol: TCP
@@ -735,7 +761,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
       - name: default-http-backend
-        image: hub.lonhwin.com/defaultbackend:1.0
+        image: cloudnil/defaultbackend:1.0
         livenessProbe:
           httpGet:
             path: /healthz
@@ -786,7 +812,7 @@ spec:
       terminationGracePeriodSeconds: 60
       serviceAccountName: nginx-ingress-controller
       containers:
-      - image: hub.lonhwin.com/nginx-ingress-controller:0.9.0-beta.8
+      - image: cloudnil/nginx-ingress-controller:0.9.0-beta.13
         name: nginx-ingress-controller
         readinessProbe:
           httpGet:
@@ -846,7 +872,7 @@ kubeadm目前还在开发测试阶段，不建议在生产环境中使用kubeadm
 
 #### 10.1 单点故障
 
-当前版本的kubeadm暂且不能部署真正高可用的kubernetes环境，只具有单点的master环境，如采用内置etcd，那etcd也是单节点，若master节点故障，可能存在数据丢失的情况，所以建议采用外部的etcd集群，这样即使master节点故障，那只要重启即可，数据不会丢失，高可用的部署功能据说正在开发中，很快就可以发布使用。
+当前版本的kubeadm暂且不能部署真正高可用的kubernetes环境，只具有单点的master环境，如采用内置etcd，那etcd也是单节点，若master节点故障，可能存在数据丢失的情况，所以建议采用外部的etcd集群，这样即使master节点故障，那只要重启即可，数据不会丢失，高可用文档正在编写，很快推出。
 
 #### 10.2 暴露主机端口
 
@@ -876,43 +902,23 @@ kubectl -n kube-system get secret clusterinfo -o yaml | grep token-map | awk '{p
 
 如果使用Vagrant虚拟化环境部署kubernetes，首先得确保`hostname -i`能够获取正确的通讯IP，默认情况下，如果`/etc/hosts`中未配置主机名与IP的对应关系，kubelet会取第一个非lo网卡作为通讯入口，若这个网卡不做了NAT桥接的网卡，那安装就会出现问题。
 
-#### 10.6 Api-server启动时localhost解析的问题
-
-kubeadm v1.6.7 中创建api-server的时候，会去解析localhost访问，这个解析会优先使用DNS解析而不是/etc/hosts中的配置，所以，如果碰到使用的DNS服务器比较二，解析了localhost，就会出现错误：
-```
-Unable to perform initial IP allocation check: unable to refresh the service IP block: Get https://localhost:6443/api/v1/services: dial tcp 220.165.8.172:6443: getsockopt: connection refused
-```
-
-我的环境中使用的DNS服务就属于比较二的，在物理机上执行`nslookup localhost`，得到解析结果为：220.165.8.172，结果api-server启动的时候，解析localhost就出问题了，这个Bug会在v1.7中修复。
-
-#### 10.7 Master节点上kubeconfig未加载的问题
+#### 10.6 Master节点上kubeconfig未加载的问题
 
 kubectl默认应该是会加载配置文件：`/etc/kubernetes/admin.conf`，但是本次部署后，kubectl未加载该配置文件，可以添加一条环境变量：export KUBECONFIG=/etc/kubernetes/admin.conf，问题解决。
 
-#### 10.8 KUBE_REPO_PREFIX配置
+#### 10.7 KUBE_REPO_PREFIX配置
 
-如果使用了KUBE_REPO_PREFIX配置官方镜像包的仓库位置，此配置对pause-amd64不会生效，可以配置kubelet的启动参数，如下：
+如果使用了KUBE_REPO_PREFIX配置官方镜像包的仓库位置，请使用以下命令增加配置：1.KUBE_REPO_PREFIX环境变量 2.KUBELET_EXTRA_ARGS参数。
 
-```bash
-cat > /etc/systemd/system/kubelet.service.d/20-pod-infra-image.conf <<EOF
+```
+sed -i '/mesg n/i\export KUBE_REPO_PREFIX=hub.cloudnil.com' ~/.profile
+source ~/.profile
+
+cat > /etc/systemd/system/kubelet.service.d/20-extra-args.conf <<EOF
 [Service]
-Environment="KUBELET_EXTRA_ARGS=--pod-infra-container-image=[pause镜像]"
+Environment="KUBELET_EXTRA_ARGS=--pod-infra-container-image=hub.cloudnil.com/pause-amd64:3.0"
 EOF
+
 systemctl daemon-reload
 systemctl restart kubelet
 ```
-
-#### 10.9 修改static pod后pod无法启动
-
-修改了`/etc/kubernetes/manifests`下的pod定义文件，会导致pod无法启动，例如，修改了`kube-controller-manager.yaml`的内容，kube-controller-manager会无法启动，查看日志中有报错信息：
-
-```bash
-Jul  6 16:40:35 master kubelet[1051]: E0706 16:40:35.186147    1051 file_linux.go:113] can't process config file "/etc/kubernetes/manifests/.kube-controller-manager.yaml.swp": /etc/kubernetes/manifests/.kube-controller-manager.yaml.swp: read 'b0VIM 7.4
-Jul  6 16:40:35 master kubelet[1051]: E0706 16:40:35.186193    1051 file_linux.go:113] can't process config file "/etc/kubernetes/manifests/.kube-controller-manager.yaml.swx": open /etc/kubernetes/manifests/.kube-controller-manager.yaml.swx: no such file or directory
-Jul  6 16:40:35 master kubelet[1051]: E0706 16:40:35.186281    1051 file_linux.go:113] can't process config file "/etc/kubernetes/manifests/.kube-controller-manager.yaml.swp": /etc/kubernetes/manifests/.kube-controller-manager.yaml.swp: read 'b0VIM 7.4
-Jul  6 16:40:35 master kubelet[1051]: E0706 16:40:35.186357    1051 file_linux.go:113] can't process config file "/etc/kubernetes/manifests/.kube-controller-manager.yaml.swp": /etc/kubernetes/manifests/.kube-controller-manager.yaml.swp: read 'b0VIM 7.4
-Jul  6 16:40:39 master kubelet[1051]: E0706 16:40:39.221561    1051 file_linux.go:113] can't process config file "/etc/kubernetes/manifests/.kube-controller-manager.yaml.swp": /etc/kubernetes/manifests/.kube-controller-manager.yaml.swp: read 'b0VIM 7.4
-Jul  6 16:40:41 master kubelet[1051]: E0706 16:40:41.762270    1051 file.go:72] unable to read config path "/etc/kubernetes/manifests": error while processing event ("/etc/kubernetes/manifests/kube-controller-manager.yaml": 0x40 == IN_MOVED_FROM): the pod with key kube-system/kube-controller-manager-master doesn't exist in cache
-```
-
-解决办法：`service kubelet restart`，该BUG会在1.7+版本中修复。

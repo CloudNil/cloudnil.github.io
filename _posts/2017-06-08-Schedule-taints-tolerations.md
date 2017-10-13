@@ -36,12 +36,20 @@ annotations:
 
 单从annotations定义的字面意思来理解，似乎的确是这种说法，但是事实上，这是忽略一件事情，那就是`Taints`和`Tolerations`。
 
-来看下Master节点上的annotations定义：
+来看下Master节点上的taints定义：
 
 ```yaml
+#v1.6以前的的版本
 annotations:
   scheduler.alpha.kubernetes.io/taints: '[{"key":"dedicated","value":"master","effect":"NoSchedule"}]'
   volumes.kubernetes.io/controller-managed-attach-detach: "true"
+
+#v1.6+版本
+spec:
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+    timeAdded: null
 ```
 
 可见，Master节点上定义了`Taints`，`Taints`是用来干什么的？它表达的是一个含义：此节点已被key=value污染，Pod调度不允许（PodToleratesNodeTaints策略）或尽量不（TaintTolerationPriority策略）调度到此节点，除非是能够容忍（Tolerations）key=value污点的Pod。
@@ -60,14 +68,22 @@ Master节点上定义了`Taints`，声明：如果不是带有`Tolerations`定�
 kubectl taint nodes node1 key=value:NoSchedule
 ```
 
-也可以直接在node的定义中修改annotations：
+也可以直接在node的定义中修改Taints：
 
 ```yaml
+#v1.6以前的的版本
 annotations:
   scheduler.alpha.kubernetes.io/taints: '[{"key":"xxx","operator":"Equal","value":"yyy","effect":"NoSchedule"}]'
+
+#v1.6+版本
+spec:
+  taints:
+  - effect: NoSchedule
+    value: yyy
+    key: xxx
 ```
 
-`operator`可以定义为：
+`operator`(v1.6+的定义中无此属性)可以定义为：
 
 - Equal     表示key是否等于value，默认
 - Exists    表示key是否存在，此时无需定义value
@@ -87,7 +103,6 @@ Node和Pod上都可以定义多个Taints和Tolerations，Scheduler会根据具�
 Pod上的Tolerations定义类似这样：
 
 ```yaml
-
 #v1.6以前的的版本
 annotations:
   scheduler.alpha.kubernetes.io/tolerations: |
@@ -101,12 +116,8 @@ annotations:
     ]
 
 #v1.6+版本
-
 tolerations:
 - key: xxx
-  operator: Equal
   value: yyy
   effect: NoSchedule
-  
 ```
-
