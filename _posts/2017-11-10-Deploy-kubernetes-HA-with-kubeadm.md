@@ -1,22 +1,26 @@
 ---
 layout: post
-title:  kubeadm快速部署kubernetes1.7.6
+title:  kubeadm快速部署kubernetes(HA)
 categories: [docker,Cloud]
-date: 2017-09-20 10:58:30 +0800
+date: 2017-11-10 10:58:30 +0800
 keywords: [docker,云计算,kubernetes]
 ---
 
->Kubernetes 1.7.6发布，调整部署文档。本次部署基于Ubuntu16.04，并使用最新的docker版本：17.06。
+>当前版本的kubeadm原生并不支持部署HA模式集群，但是实际上可以使用kubeadm部署后，再进行少量手动修改，即可实现HA模式的kubernetes集群。本次部署基于Ubuntu16.04，并使用最新的docker版本：17.06，kubernetes适用1.7.x版本，本文采用1.7.6。
 
 ### 1 环境准备
 
-准备了三台机器作安装测试工作，机器信息如下: 
+准备了六台机器作安装测试工作，机器信息如下: 
 
-|      IP     |  Name  |       Role      |      OS     |
-|-------------|--------|-----------------|-------------|
-| 172.16.2.1  | Master | Controller,etcd | Ubuntu16.04 |
-| 172.16.2.11 | Node01 | Compute,etcd    | Ubuntu16.04 |
-| 172.16.2.12 | Node02 | Compute,etcd    | Ubuntu16.04 |
+|      IP      |   Name   |       Role      |      OS     |
+|--------------|----------|-----------------|-------------|
+| 172.16.2.1   | Master01 | Controller,etcd | Ubuntu16.04 |
+| 172.16.2.2   | Master02 | Controller,etcd | Ubuntu16.04 |
+| 172.16.2.3   | Master03 | Controller,etcd | Ubuntu16.04 |
+| 172.16.2.11  | Node01   | Compute         | Ubuntu16.04 |
+| 172.16.2.12  | Node02   | Compute         | Ubuntu16.04 |
+| 172.16.2.13  | Node03   | Compute         | Ubuntu16.04 |
+| 172.16.2.100 | VIP      | VIP             | -           |
 
 ### 2 安装docker
 
@@ -34,12 +38,12 @@ apt-get install docker-ce=17.06.0~ce-0~ubuntu
 
 使用了docker-compose安装，当然，如果觉得麻烦，也可以直接docker run。
 
-Master节点的ETCD的docker-compose.yml：
+Master01节点的ETCD的docker-compose.yml：
 
 ```yaml
 etcd:
   image: quay.io/coreos/etcd:v3.1.5
-  command: etcd --name etcd-srv1 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.1:2379,http://172.16.2.1:2380 --initial-advertise-peer-urls http://172.16.2.1:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.11:2380,etcd-srv3=http://172.16.2.12:2380" -initial-cluster-state new
+  command: etcd --name etcd-srv1 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.1:2379,http://172.16.2.1:2380 --initial-advertise-peer-urls http://172.16.2.1:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.2:2380,etcd-srv3=http://172.16.2.3:2380" -initial-cluster-state new
   net: "bridge"
   ports:
   - "2379:2379"
@@ -51,12 +55,12 @@ etcd:
   - /store/etcd:/var/etcd
 ```
 
-Node01节点的ETCD的docker-compose.yml：
+Master02节点的ETCD的docker-compose.yml：
 
 ```yaml
 etcd:
   image: quay.io/coreos/etcd:v3.1.5
-  command: etcd --name etcd-srv2 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.11:2379,http://172.16.2.11:2380 --initial-advertise-peer-urls http://172.16.2.11:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.11:2380,etcd-srv3=http://172.16.2.12:2380" -initial-cluster-state new
+  command: etcd --name etcd-srv2 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.2:2379,http://172.16.2.2:2380 --initial-advertise-peer-urls http://172.16.2.2:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.2:2380,etcd-srv3=http://172.16.2.3:2380" -initial-cluster-state new
   net: "bridge"
   ports:
   - "2379:2379"
@@ -68,12 +72,12 @@ etcd:
   - /store/etcd:/var/etcd
 ```
 
-Node02节点的ETCD的docker-compose.yml：
+Master03节点的ETCD的docker-compose.yml：
 
 ```yaml
 etcd:
   image: quay.io/coreos/etcd:v3.1.5
-  command: etcd --name etcd-srv3 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.12:2379,http://172.16.2.12:2380 --initial-advertise-peer-urls http://172.16.2.12:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.11:2380,etcd-srv3=http://172.16.2.12:2380" -initial-cluster-state new
+  command: etcd --name etcd-srv3 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.3:2379,http://172.16.2.3:2380 --initial-advertise-peer-urls http://172.16.2.3:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.2:2380,etcd-srv3=http://172.16.2.3:2380" -initial-cluster-state new
   net: "bridge"
   ports:
   - "2379:2379"
@@ -194,15 +198,26 @@ kubeadm init --api-advertise-addresses=172.16.2.1 --use-kubernetes-version v1.7.
 ```yaml
 apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
-api:
-  advertiseAddress: 172.16.2.1
+# networking:
+#   podSubnet: 10.244.0.0/16
+apiServerCertSANs:
+- master01
+- master02
+- master03
+- 172.16.2.1
+- 172.16.2.2
+- 172.16.2.3
+- 172.16.2.100
 etcd:
   endpoints:
   - http://172.16.2.1:2379
-  - http://172.16.2.11:2379
-  - http://172.16.2.12:2379
+  - http://172.16.2.2:2379
+  - http://172.16.2.3:2379
+token: 67e411.zc3617bb21ad7ee3
 kubernetesVersion: v1.7.6
 ```
+
+PS：`token`是使用指令`kubeadm token generate`生成的。
 
 初始化指令：
 
@@ -210,7 +225,7 @@ kubernetesVersion: v1.7.6
 kubeadm init --config kubeadm-config.yml
 ```
 
->说明：如果打算使用flannel网络，请加上：`--pod-network-cidr=10.244.0.0/16`。如果有多网卡的，请根据实际情况配置`--api-advertise-addresses=<ip-address>`，单网卡情况可以省略。
+>说明：如果打算使用flannel网络，请去掉`networking`注释。如果有多网卡的，请根据实际情况配置`--api-advertise-addresses=<ip-address>`，单网卡情况可以省略。
 
 安装过程大概2-3分钟，输出结果如下：
 
@@ -218,7 +233,7 @@ kubeadm init --config kubeadm-config.yml
 [kubeadm] WARNING: kubeadm is in alpha, please do not use it for production clusters.
 [preflight] Running pre-flight checks
 [init] Using Kubernetes version: v1.7.6
-[tokens] Generated token: "064158.548b9ddb1d3fad3e"
+[tokens] Generated token: "67e411.zc3617bb21ad7ee3"
 [certificates] Generated Certificate Authority key and certificate.
 [certificates] Generated API Server key and certificate
 [certificates] Generated Service Account signing keys
@@ -243,16 +258,54 @@ Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
 
 You can now join any number of machines by running the following on each node:
 
-kubeadm join --token=de3d61.504a049ec342e135 172.16.2.1
+kubeadm join --token=67e411.zc3617bb21ad7ee3 172.16.2.1
 ```
 
-### 6 安装Node节点
+修改`/etc/kubernetes/manifests/kube-apiserver.yaml`中的`admission-control`策略：
+
+```bash
+root@master01:/etc/kubernetes/manifests# vi kube-apiserver.yaml
+
+#- --admission-control=Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,ResourceQuota
+- --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
+```
+
+复制`/etc/kubernetes`到Master02和Master03
+
+```bash
+scp -r /etc/kubernetes 172.16.2.2:/etc/kubernetes
+scp -r /etc/kubernetes 172.16.2.3:/etc/kubernetes
+```
+
+修改`/etc/kubernetes`和`/etc/kubernetes/manifests`以下文件：
+
+```bash
+root@master02:/etc/kubernetes# sed -i 's/172.16.2.1:6443/172.16.2.2:6443/g' `grep 172.16.2.1:6443 . -rl`
+root@master03:/etc/kubernetes# sed -i 's/172.16.2.1:6443/172.16.2.3:6443/g' `grep 172.16.2.1:6443 . -rl`
+
+root@master02:/etc/kubernetes# sed -i 's/--advertise-address=172.16.2.1/--advertise-address=172.16.2.2/g' manifests/kube-apiserver.yaml
+root@master03:/etc/kubernetes# sed -i 's/--advertise-address=172.16.2.1/--advertise-address=172.16.2.3/g' manifests/kube-apiserver.yaml
+```
+
+Master02和Master03节点重启`kubelet`服务。
+
+```bash
+systemctl restart kubelet
+```
+
+### 6 安装keepalived
+
+Master01、Master02、Master03上分别安装keepalived，配置VIP为`172.16.2.100`。
+
+详细过程略过，网络上很多教程，请各位自行查阅。
+
+### 7 安装Node节点
 
 Master节点安装好了Node节点就简单了。
 
 ```Bash
 kubeadm reset
-kubeadm join --token=de3d61.504a049ec342e135 172.16.2.1
+kubeadm join --token=67e411.zc3617bb21ad7ee3 172.16.2.100
 ```
 
 输出结果如下：
@@ -262,12 +315,12 @@ kubeadm join --token=de3d61.504a049ec342e135 172.16.2.1
 [preflight] Running pre-flight checks
 [preflight] Starting the kubelet service
 [tokens] Validating provided token
-[discovery] Created cluster info discovery client, requesting info from "http://172.16.2.1:9898/cluster-info/v1/?token-id=f11877"
+[discovery] Created cluster info discovery client, requesting info from "http://172.16.2.100:9898/cluster-info/v1/?token-id=f11877"
 [discovery] Cluster info object received, verifying signature using given token
-[discovery] Cluster info signature and contents are valid, will use API endpoints [https://172.16.2.1:6443]
-[bootstrap] Trying to connect to endpoint https://172.16.2.1:6443
+[discovery] Cluster info signature and contents are valid, will use API endpoints [https://172.16.2.100:6443]
+[bootstrap] Trying to connect to endpoint https://172.16.2.100:6443
 [bootstrap] Detected server version: v1.7.6
-[bootstrap] Successfully established connection with endpoint "https://172.16.2.1:6443"
+[bootstrap] Successfully established connection with endpoint "https://172.16.2.100:6443"
 [csr] Created API client to obtain unique certificate for this node, generating keys and certificate signing request
 [csr] Received signed certificate from the API server:
 Issuer: CN=kubernetes | Subject: CN=system:node:yournode | CA: false
@@ -286,13 +339,16 @@ Run 'kubectl get nodes' on the master to see this machine join.
 安装完成后可以查看下状态，未安装网络组件，所以全部都是NotReady状态：
 
 ```Bash
-NAME      STATUS     AGE       VERSION
-master    NotReady   1h        v1.7.6
-node01    NotReady   1h        v1.7.6
-node02    NotReady   1h        v1.7.6
+NAME       STATUS        AGE      VERSION
+master01   NotReady      1d       v1.7.6
+master02   NotReady      1d       v1.7.6
+master03   NotReady      1d       v1.7.6
+node01     NotReady      1d       v1.7.6
+node02     NotReady      1d       v1.7.6
+node03     NotReady      1d       v1.7.6
 ```
 
-### 7 安装Calico网络
+### 8 安装Calico网络
 
 网络组件选择很多，可以根据自己的需要选择calico、weave、flannel，calico性能最好，flannel的vxlan也不错，默认的UDP性能较差，weave的性能比较差，测试环境用下可以，生产环境不建议使用。[Addons](http://kubernetes.io/docs/admin/addons/)中有配置好的yaml，所以本文中尝试calico网络，。
 
@@ -318,7 +374,7 @@ metadata:
   namespace: kube-system
 data:
   # The location of your etcd cluster.  This uses the Service clusterIP defined below.
-  etcd_endpoints: "http://172.16.2.1:2379,http://172.16.2.11:2379,http://172.16.2.12:2379"
+  etcd_endpoints: "http://172.16.2.1:2379,http://172.16.2.2:2379,http://172.16.2.3:2379"
 
   # Configure the Calico backend to use.
   calico_backend: "bird"
@@ -621,23 +677,231 @@ metadata:
 检查各节点组件运行状态：
 
 ```Bash
-NAME                                        READY     STATUS    RESTARTS   AGE
-calico-node-34b1k                           2/2       Running   0          21m
-calico-node-bz8cw                           2/2       Running   0          21m
-calico-node-psjj1                           2/2       Running   0          21m
-calico-policy-controller-1324707180-97r1c   1/1       Running   2          21m
-kube-apiserver-master                       1/1       Running   0          13m
-kube-controller-manager-master              1/1       Running   6          23m
-kube-dns-1076809945-l59j9                   3/3       Running   0          23m
-kube-proxy-4bcc9                            1/1       Running   0          22m
-kube-proxy-f0sq2                            1/1       Running   0          23m
-kube-proxy-p6ksj                            1/1       Running   0          22m
-kube-scheduler-master                       1/1       Running   6          23m
+NAME                                        READY     STATUS     RESTARTS   AGE
+calico-node-0cjx5                           2/2       Running    0          1d
+calico-node-1vj9s                           2/2       Running    0          1d
+calico-node-222v0                           2/2       Running    0          1d
+calico-node-7nqj7                           2/2       Running    0          1d
+calico-node-7tvh9                           2/2       Running    0          1d
+calico-node-86313                           2/2       Running    2          1d
+calico-policy-controller-3691403067-43wm6   1/1       Running    3          1d
+kube-apiserver-master01                     1/1       Running    3          1d
+kube-apiserver-master02                     1/1       Running    1          1d
+kube-apiserver-master03                     1/1       Running    1          1d
+kube-controller-manager-master01            1/1       Running    4          1d
+kube-controller-manager-master02            1/1       Running    2          1d
+kube-controller-manager-master03            1/1       Running    2          1d
+kube-dns-4099109879-3hqtq                   3/3       Running    0          1d
+kube-proxy-43j51                            1/1       Running    1          1d
+kube-proxy-4z8mx                            1/1       Running    0          1d
+kube-proxy-8w1xh                            1/1       Running    0          1d
+kube-proxy-g2hv8                            1/1       Running    1          1d
+kube-proxy-hzkmc                            1/1       Running    1          1d
+kube-proxy-l91xr                            1/1       Running    0          1d
+kube-scheduler-master01                     1/1       Running    4          1d
+kube-scheduler-master02                     1/1       Running    2          1d
+kube-scheduler-master03                     1/1       Running    2          1d
 ```
 
 >说明：kube-dns需要等calico配置完成后才是running状态。
 
-### 8 部署Dashboard
+### 8 DNS集群部署
+
+删除原单点kube-dns
+
+```bash
+kubectl delete deploy kube-dns -n kube-system
+```
+
+部署多实例的kube-dns集群，参考配置kube-dns.yml：
+
+```bash
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    k8s-app: kube-dns
+  name: kube-dns
+  namespace: kube-system
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      k8s-app: kube-dns
+  strategy:
+    rollingUpdate:
+      maxSurge: 10%
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+      creationTimestamp: null
+      labels:
+        k8s-app: kube-dns
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: k8s-app
+                    operator: In
+                    values:
+                    - kube-dns
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+      - args:
+        - --domain=cluster.local.
+        - --dns-port=10053
+        - --config-dir=/kube-dns-config
+        - --v=2
+        env:
+        - name: PROMETHEUS_PORT
+          value: "10055"
+        image: cloudnil/k8s-dns-kube-dns-amd64:1.14.4
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /healthcheck/kubedns
+            port: 10054
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: kubedns
+        ports:
+        - containerPort: 10053
+          name: dns-local
+          protocol: UDP
+        - containerPort: 10053
+          name: dns-tcp-local
+          protocol: TCP
+        - containerPort: 10055
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readiness
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            memory: 170Mi
+          requests:
+            cpu: 100m
+            memory: 70Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /kube-dns-config
+          name: kube-dns-config
+      - args:
+        - -v=2
+        - -logtostderr
+        - -configDir=/etc/k8s/dns/dnsmasq-nanny
+        - -restartDnsmasq=true
+        - --
+        - -k
+        - --cache-size=1000
+        - --log-facility=-
+        - --server=/cluster.local/127.0.0.1#10053
+        - --server=/in-addr.arpa/127.0.0.1#10053
+        - --server=/ip6.arpa/127.0.0.1#10053
+        image: cloudnil/k8s-dns-dnsmasq-nanny-amd64:1.14.4
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /healthcheck/dnsmasq
+            port: 10054
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: dnsmasq
+        ports:
+        - containerPort: 53
+          name: dns
+          protocol: UDP
+        - containerPort: 53
+          name: dns-tcp
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 150m
+            memory: 20Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/k8s/dns/dnsmasq-nanny
+          name: kube-dns-config
+      - args:
+        - --v=2
+        - --logtostderr
+        - --probe=kubedns,127.0.0.1:10053,kubernetes.default.svc.cluster.local,5,A
+        - --probe=dnsmasq,127.0.0.1:53,kubernetes.default.svc.cluster.local,5,A
+        image: cloudnil/k8s-dns-sidecar-amd64:1.14.4
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /metrics
+            port: 10054
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: sidecar
+        ports:
+        - containerPort: 10054
+          name: metrics
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 10m
+            memory: 20Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: Default
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: kube-dns
+      serviceAccountName: kube-dns
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - key: CriticalAddonsOnly
+        operator: Exists
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: kube-dns
+          optional: true
+        name: kube-dns-config
+```
+
+### 9 部署Dashboard
 
 下载kubernetes-dashboard.yaml
 
@@ -738,7 +1002,7 @@ spec:
           servicePort: 80
 ```
 
-### 9 Dashboard服务暴露到公网
+### 10 Dashboard服务暴露到公网
 
 kubernetes中的Service暴露到外部有三种方式，分别是：
 
@@ -752,7 +1016,7 @@ NodePort Service顾名思义，实质上就是通过在集群的每个node上暴
 
 Ingress可以实现使用nginx等开源的反向代理负载均衡器实现对外暴露服务，可以理解Ingress就是用于配置域名转发的一个东西，在nginx中就类似upstream，它与ingress-controller结合使用，通过ingress-controller监控到pod及service的变化，动态地将ingress中的转发信息写到诸如nginx、apache、haproxy等组件中实现方向代理和负载均衡。
 
-#### 9.1 部署Nginx-ingress-controller
+#### 10.1 部署Nginx-ingress-controller
 
 `Nginx-ingress-controller`是kubernetes官方提供的集成了Ingress-controller和Nginx的一个docker镜像。
 
@@ -879,19 +1143,19 @@ subjects:
 
 部署完Nginx-ingress-controller后，解析域名`dashboard.cloudnil.com`到node02的外网IP，就可以使用`dashboard.cloudnil.com`访问dashboard。
 
-### 10 注意事项
+### 11 注意事项
 
 kubeadm目前还在开发测试阶段，不建议在生产环境中使用kubeadm部署kubernetes环境。此外，使用kubeadm是需要注意以下几点：
 
-#### 10.1 单点故障
+#### 11.1 单点故障
 
 当前版本的kubeadm暂且不能部署真正高可用的kubernetes环境，只具有单点的master环境，如采用内置etcd，那etcd也是单节点，若master节点故障，可能存在数据丢失的情况，所以建议采用外部的etcd集群，这样即使master节点故障，那只要重启即可，数据不会丢失，高可用文档正在编写，很快推出。
 
-#### 10.2 暴露主机端口
+#### 11.2 暴露主机端口
 
 POD实例配置中的HostPort和HostIP参数无法用于使用了CNI网络插件的kubernetes集群环境，如果需要暴露容器到主机端口，可以使用NodePort或者HostNetwork。
 
-#### 10.3 CentOS环境路由错误
+#### 11.3 CentOS环境路由错误
 
 RHEL/CentOS7 环境中iptables的策略关系，会导致路由通讯错误，需要手动调整iptables的桥接设置：
 
@@ -901,7 +1165,7 @@ RHEL/CentOS7 环境中iptables的策略关系，会导致路由通讯错误，�
  net.bridge.bridge-nf-call-iptables = 1
 ```
 
-#### 10.4 Token丢失
+#### 11.4 Token丢失
 
 Master节点部署完成之后，会输出一个token用于minion节点的配置链接，不过这个token没有很方便的查看方式，导致此日志输出关闭后，没有token无法join minion节点，可以通过下述方式查看token：
 
@@ -911,10 +1175,10 @@ kubectl -n kube-system get secret clusterinfo -o yaml | grep token-map | awk '{p
 
 建议提前使用`kubeadm token`命令生成token，然后在执行`kubeadm init`和`kubeadm join`的使用通过`--token`指定token。
 
-#### 10.5 Vagrant中主机名的问题
+#### 11.5 Vagrant中主机名的问题
 
 如果使用Vagrant虚拟化环境部署kubernetes，首先得确保`hostname -i`能够获取正确的通讯IP，默认情况下，如果`/etc/hosts`中未配置主机名与IP的对应关系，kubelet会取第一个非lo网卡作为通讯入口，若这个网卡不做了NAT桥接的网卡，那安装就会出现问题。
 
-#### 10.6 Master节点上kubeconfig未加载的问题
+#### 11.6 Master节点上kubeconfig未加载的问题
 
 kubectl默认应该是会加载配置文件：`/etc/kubernetes/admin.conf`，但是本次部署后，kubectl未加载该配置文件，可以添加一条环境变量：export KUBECONFIG=/etc/kubernetes/admin.conf，问题解决。
