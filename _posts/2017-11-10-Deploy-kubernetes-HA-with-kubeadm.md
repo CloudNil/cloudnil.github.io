@@ -280,10 +280,12 @@ scp -r /etc/kubernetes 172.16.2.3:/etc/kubernetes
 修改`/etc/kubernetes`和`/etc/kubernetes/manifests`以下文件：
 
 ```bash
+#Master02
 root@master02:/etc/kubernetes# sed -i 's/172.16.2.1:6443/172.16.2.2:6443/g' `grep 172.16.2.1:6443 . -rl`
-root@master03:/etc/kubernetes# sed -i 's/172.16.2.1:6443/172.16.2.3:6443/g' `grep 172.16.2.1:6443 . -rl`
-
 root@master02:/etc/kubernetes# sed -i 's/--advertise-address=172.16.2.1/--advertise-address=172.16.2.2/g' manifests/kube-apiserver.yaml
+
+#Master03
+root@master03:/etc/kubernetes# sed -i 's/172.16.2.1:6443/172.16.2.3:6443/g' `grep 172.16.2.1:6443 . -rl`
 root@master03:/etc/kubernetes# sed -i 's/--advertise-address=172.16.2.1/--advertise-address=172.16.2.3/g' manifests/kube-apiserver.yaml
 ```
 
