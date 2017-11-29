@@ -6,7 +6,7 @@ date: 2017-09-20 10:58:30 +0800
 keywords: [docker,云计算,kubernetes]
 ---
 
->Kubernetes 1.7.6发布，调整部署文档。本次部署基于Ubuntu16.04，并使用最新的docker版本：17.06。
+>Kubernetes 1.7.6+发布，调整部署文档。本次部署基于Ubuntu16.04，并使用最新的docker版本：17.06。
 
 ### 1 环境准备
 
