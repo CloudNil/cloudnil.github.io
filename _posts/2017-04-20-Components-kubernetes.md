@@ -185,3 +185,5 @@ Dashboard是官方提供的kubernetes集群的UI界面，提供了一些基础�
 可以通过官方提供的YAML模板创建：`kubectl create -f https://rawgit.com/kubernetes/dashboard/master/src/deploy/kubernetes-dashboard.yaml`。
 
 >详细介绍、文档：[Kube-Dashboard文档](https://kubernetes.io/docs/tasks/web-ui-dashboard/)。
+
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2017/04/20/Components-kubernetes/。

@@ -426,3 +426,5 @@ spec:
 ```
 
 部署完Ingress后，解析域名`dashboard.cloudnil.com`到minion02的外网IP，就可以使用`dashboard.cloudnil.com`访问dashboard。
+
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2016/12/14/Deploy-kubernetes1.5.0-with-kubeadm/。

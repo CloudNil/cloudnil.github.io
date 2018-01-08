@@ -613,3 +613,5 @@ sysctl -p
 Mem:           1.8G        441M        1.2G         24M        167M        1.2G
 Swap:          2.0G        108K        2.0G
 ```
+
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2015/12/14/Deploy-mesos-and-marathon/。

@@ -75,3 +75,4 @@ spec:
         - containerPort: 8080
 ```
 
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2017/06/07/Schedule-nodeSelector/。

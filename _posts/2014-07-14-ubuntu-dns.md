@@ -153,3 +153,5 @@ Address: 10.68.19.134
 ```
 
 解析情况为，域名：baidu.com，在本地DNS中没有找到匹配，通过DNS：8.8.8.8解析，mycloud.com在本地DNS中有匹配，解析到10.68.19.134.
+
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2014/07/14/ubuntu-dns/。

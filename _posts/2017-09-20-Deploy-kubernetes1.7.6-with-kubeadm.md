@@ -918,3 +918,5 @@ kubectl -n kube-system get secret clusterinfo -o yaml | grep token-map | awk '{p
 #### 10.6 Master节点上kubeconfig未加载的问题
 
 kubectl默认应该是会加载配置文件：`/etc/kubernetes/admin.conf`，但是本次部署后，kubectl未加载该配置文件，可以添加一条环境变量：export KUBECONFIG=/etc/kubernetes/admin.conf，问题解决。
+
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2017/09/20/Deploy-kubernetes1.7.6-with-kubeadm/。

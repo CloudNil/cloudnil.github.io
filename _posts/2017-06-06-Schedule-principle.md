@@ -79,3 +79,5 @@ Kubernetes的调度策略分为Predicates（预选策略）和Priorites（优选
 ### 2 结语
 
 Kubernetes的Scheduler调度器提供了如此大量的调度策略，灵活搭配使用它们，能够应对各种各样的需求场景。尤其是在大型集群环境中，优秀的调度策略和算法，可以为业务提供稳定高效的运行时环境。
+
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2017/06/06/Schedule-principle/。

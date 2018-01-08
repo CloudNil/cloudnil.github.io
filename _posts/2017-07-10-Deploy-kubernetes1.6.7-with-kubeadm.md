@@ -916,3 +916,5 @@ Jul  6 16:40:41 master kubelet[1051]: E0706 16:40:41.762270    1051 file.go:72] 
 ```
 
 解决办法：`service kubelet restart`，该BUG会在1.7+版本中修复。
+
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2017/07/10/Deploy-kubernetes1.6.7-with-kubeadm/。

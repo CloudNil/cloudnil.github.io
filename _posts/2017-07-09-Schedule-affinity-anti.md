@@ -119,9 +119,4 @@ spec:
 2. 如果`Admission Controller`中添加了`LimitPodHardAntiAffinityTopology`，那么`podAntiAffinity`的`requiredDuringSchedulingIgnoredDuringExecution`被强制约束为`kubernetes.io/hostname`。
 3. 如果`podAntiAffinity`的`preferredDuringSchedulingIgnoredDuringExecution`中的topologyKey为空，则默认为适配`kubernetes.io/hostname`,`failure-domain.beta.kubernetes.io/zone`,`failure-domain.beta.kubernetes.io/region`。
 
-
-
-
-
-
-
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2017/07/09/Schedule-affinity-anti/。

@@ -541,3 +541,5 @@ kubectl -n kube-system get secret clusterinfo -o yaml | grep token-map | awk '{p
 #### 10.5 Vagrant中主机名的问题
 
 如果使用Vagrant虚拟化环境部署kubernetes，首先得确保`hostname -i`能够获取正确的通讯IP，默认情况下，如果`/etc/hosts`中未配置主机名与IP的对应关系，kubelet会取第一个非lo网卡作为通讯入口，若这个网卡不做了NAT桥接的网卡，那安装就会出现问题。
+
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2017/01/17/Deploy-kubernetes1.5.2-with-kubeadm/。
