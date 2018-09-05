@@ -1339,4 +1339,4 @@ spec:
 
 部署完Nginx-ingress-controller后，解析域名`dashboard.cloudnil.com`到node02的外网IP，就可以使用`dashboard.cloudnil.com`访问dashboard。
 
->版权声明：允许转载，请注明原文出处：http://cloudnil.com/2017/11/10/Deploy-kubernetes-HA-with-kubeadm/。
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2018/08/24/Deploy-kubernetes(1.11.2)-HA-with-kubeadm/。
