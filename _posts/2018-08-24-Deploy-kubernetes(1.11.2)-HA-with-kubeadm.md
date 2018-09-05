@@ -212,6 +212,12 @@ nameserver 172.16.2.13
 EOF
 ```
 
+记得重启解析服务`resolvconf`：
+
+```
+/etc/init.d/resolvconf restart
+```
+
 ### 7 安装master节点
 
 kubeadm配置文件kubeadm-config.yml：
