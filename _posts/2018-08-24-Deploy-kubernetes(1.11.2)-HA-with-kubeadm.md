@@ -147,12 +147,16 @@ kubernetes-1.11.2所需要的镜像：
 - kube-controller-manager-amd64:v1.11.2
 - kube-apiserver-amd64:v1.11.2
 - coredns:1.1.3
+- nginx-ingress-controller:0.17.1
+- kubernetes-dashboard-amd64:v1.10.0
+- defaultbackend:1.0
 
 偷下懒吧，直接执行以下脚本，提前下载好镜像，后边的动作就快了：
 
 ```Bash
 #!/bin/bash
-images=(kube-proxy-amd64:v1.11.2 kube-scheduler-amd64:v1.11.2 kube-controller-manager-amd64:v1.11.2 kube-apiserver-amd64:v1.11.2 etcd-amd64:3.2.17 pause-amd64:3.1 coredns:1.1.3)
+images=(kube-proxy-amd64:v1.11.2 kube-scheduler-amd64:v1.11.2 kube-controller-manager-amd64:v1.11.2 kube-apiserver-amd64:v1.11.2 etcd-amd64:3.2.17 pause-amd64:3.1 coredns:1.1.3 nginx-ingress-controller:0.17.1 
+kubernetes-dashboard-amd64:v1.10.0 defaultbackend:1.0)
 for imageName in ${images[@]} ; do
   docker pull cloudnil/$imageName
 done
@@ -397,7 +401,7 @@ node03     NotReady   <none>    1m        v1.11.2
 
 ### 8 安装Calico网络
 
-网络组件选择很多，可以根据自己的需要选择calico、weave、flannel，calico性能最好，flannel的vxlan也不错，默认的UDP性能较差，weave的性能比较差，测试环境用下可以，生产环境不建议使用。calico的安装配置可以参考官方部署：[https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/calico](https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/calico)
+网络组件选择很多，可以根据自己的需要选择calico、weave、flannel，calico性能最好，flannel的vxlan也不错，默认的UDP性能较差，weave的性能比较差，测试环境用下可以，生产环境不建议使用。calico的安装配置可以参考官方部署：[点击查看](https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/calico)
 
 calico-rbac.yml：
 
@@ -939,7 +943,7 @@ spec:
       - args:
         - -conf
         - /etc/coredns/Corefile
-        image: hub.lonhcloud.com/coredns:1.1.3
+        image: cloudnil/coredns:1.1.3
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 5
@@ -1100,7 +1104,7 @@ spec:
     spec:
       containers:
       - name: kubernetes-dashboard
-        image: k8s.gcr.io/kubernetes-dashboard-amd64:v1.10.0
+        image: cloudnil/kubernetes-dashboard-amd64:v1.10.0
         ports:
         - containerPort: 8443
           protocol: TCP
@@ -1219,7 +1223,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
       - name: default-http-backend
-        image: hub.lonhcloud.com/defaultbackend:1.0
+        image: cloudnil/defaultbackend:1.0
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1300,7 +1304,7 @@ spec:
                     - nginx-ingress-controller
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - image: hub.lonhcloud.com/nginx-ingress-controller:0.17.1
+      - image: cloudnil/nginx-ingress-controller:0.17.1
         name: nginx-ingress-controller
         readinessProbe:
           httpGet:
