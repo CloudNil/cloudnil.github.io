@@ -141,7 +141,7 @@ kubeadm方式安装kubernetes集群需要的镜像在docker官方镜像中并未
 kubernetes-1.11.2所需要的镜像：
 
 - etcd-amd64:3.2.17
-- pause-amd64:3.1
+- pause:3.1
 - kube-proxy-amd64:v1.11.2
 - kube-scheduler-amd64:v1.11.2
 - kube-controller-manager-amd64:v1.11.2
@@ -149,13 +149,13 @@ kubernetes-1.11.2所需要的镜像：
 - coredns:1.1.3
 - nginx-ingress-controller:0.17.1
 - kubernetes-dashboard-amd64:v1.10.0
-- defaultbackend:1.0
+- defaultbackend:1.4
 
 偷下懒吧，直接执行以下脚本，提前下载好镜像，后边的动作就快了：
 
 ```Bash
 #!/bin/bash
-images=(kube-proxy-amd64:v1.11.2 kube-scheduler-amd64:v1.11.2 kube-controller-manager-amd64:v1.11.2 kube-apiserver-amd64:v1.11.2 etcd-amd64:3.2.17 pause-amd64:3.1 coredns:1.1.3 nginx-ingress-controller:0.17.1 
+images=(kube-proxy-amd64:v1.11.2 kube-scheduler-amd64:v1.11.2 kube-controller-manager-amd64:v1.11.2 kube-apiserver-amd64:v1.11.2 etcd-amd64:3.2.17 pause:3.1 coredns:1.1.3 nginx-ingress-controller:0.17.1 
 kubernetes-dashboard-amd64:v1.10.0 defaultbackend:1.0)
 for imageName in ${images[@]} ; do
   docker pull cloudnil/$imageName
@@ -170,7 +170,7 @@ done
 sed -i '/mesg n/i\export KUBECONFIG=/etc/kubernetes/admin.conf' ~/.profile
 source ~/.profile
 
-sed -i 's/KUBELET_EXTRA_ARGS=/&--pod-infra-container-image=cloudnil\/pause-amd64:3.1/' /etc/default/kubelet
+sed -i 's/KUBELET_EXTRA_ARGS=/&--pod-infra-container-image=cloudnil\/pause:3.1/' /etc/default/kubelet
 
 systemctl daemon-reload
 systemctl restart kubelet
