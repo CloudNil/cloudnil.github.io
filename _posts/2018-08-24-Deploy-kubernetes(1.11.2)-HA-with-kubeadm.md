@@ -1071,12 +1071,12 @@ kubectl apply -f metrics-server/
 ```
 root@master01:~# kubectl top nodes
 NAME       CPU(cores)   CPU%      MEMORY(bytes)  MEMORY%   
-master01   465m         26%       295Mi          28%       
-master02   408m         23%       229Mi          33%       
-master03   440m         25%       221Mi          37%       
-node01     376m         10%       1047Mi         63%       
-node02     196m         5%        976Mi          60%       
-node03     206m         5%        907Mi          62%       
+master01   465m         26%       295Mi          18%       
+master02   408m         23%       229Mi          13%       
+master03   440m         25%       221Mi          17%       
+node01     376m         10%       1047Mi         13%       
+node02     196m         5%        976Mi          10%       
+node03     206m         5%        907Mi          12%       
 ```
 
 ### 11 部署Dashboard
