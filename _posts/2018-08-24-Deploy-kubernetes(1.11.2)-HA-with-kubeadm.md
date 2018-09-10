@@ -17,9 +17,11 @@ keywords: [docker,云计算,kubernetes]
 | 172.16.2.1   | Master01 | Controller,etcd | Ubuntu16.04 |
 | 172.16.2.2   | Master02 | Controller,etcd | Ubuntu16.04 |
 | 172.16.2.3   | Master03 | Controller,etcd | Ubuntu16.04 |
-| 172.16.2.11  | Node01   | Compute,DNS     | Ubuntu16.04 |
-| 172.16.2.12  | Node02   | Compute,DNS     | Ubuntu16.04 |
-| 172.16.2.13  | Node03   | Compute,DNS     | Ubuntu16.04 |
+| 172.16.2.11  | Node01   | Compute         | Ubuntu16.04 |
+| 172.16.2.12  | Node02   | Compute         | Ubuntu16.04 |
+| 172.16.2.13  | Node03   | Compute         | Ubuntu16.04 |
+| 172.16.2.251 | Dns01    | DNS             | Ubuntu16.04 |
+| 172.16.2.252 | Dns01    | DNS             | Ubuntu16.04 |
 
 ### 2 安装docker
 
@@ -180,7 +182,7 @@ systemctl restart kubelet
 
 配置负载均衡器对kube-apiserver进行负载均衡，可采用DNS轮询解析或者Haproxy（Nginx）反向代理实现负载均衡。
 
-本文采用DNS轮询解析实现简单的负载均衡，在Node01,Node02,Node03节点上部署DNS。
+本文采用DNS轮询解析实现简单的负载均衡，在Dns01,Dns02节点上部署DNS。
 
 1、修改`/etc/hosts`文件，添加域名解析
 
@@ -206,13 +208,12 @@ services:
     tty: true
 ```
 
-3、除了部署dnsmasq服务的其他所有节点上，配置DNS
+3、除了部署dnsmasq服务的其他所有节点上(包括Master和Node)，配置DNS
 
 ```
 cat <<EOF >/etc/resolvconf/resolv.conf.d/base
-nameserver 172.16.2.11
-nameserver 172.16.2.12
-nameserver 172.16.2.13
+nameserver 172.16.2.251
+nameserver 172.16.2.252
 EOF
 ```
 
@@ -1008,7 +1009,77 @@ spec:
         name: config-volume
 ```
 
-### 10 部署Dashboard
+### 10 部署Metrics-Server
+
+kubernetesv1.11以后不再支持通过`heaspter`采集监控数据，支持新的监控数据采集组件`metrics-server`，比`heaspter`轻量很多，也不做数据的持久化存储，提供实时的监控数据查询还是很好用的。
+
+获取部署文档，[点击这里](https://github.com/kubernetes-incubator/metrics-server/tree/master/deploy/1.8%2B)。
+
+下载所有yaml到目录`metrics-server`，修改`metrics-server-deployment.yaml`：
+
+```yaml
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metrics-server
+  namespace: kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics-server
+  namespace: kube-system
+  labels:
+    k8s-app: metrics-server
+spec:
+  selector:
+    matchLabels:
+      k8s-app: metrics-server
+  template:
+    metadata:
+      name: metrics-server
+      labels:
+        k8s-app: metrics-server
+    spec:
+      serviceAccountName: metrics-server
+      volumes:
+      # mount in tmp so we can safely use from-scratch images and/or read-only containers
+      - name: tmp-dir
+        emptyDir: {}
+      containers:
+      - name: metrics-server
+        image: cloudnil/metrics-server-amd64:v0.3.0
+        imagePullPolicy: Always
+        command:
+        - /metrics-server
+        - --kubelet-insecure-tls
+        - --kubelet-preferred-address-types=InternalIP
+        volumeMounts:
+        - name: tmp-dir
+          mountPath: /tmp
+```
+
+执行部署命令：
+
+```
+kubectl apply -f metrics-server/
+```
+
+查看监控数据：
+
+```
+root@master01:~# kubectl top nodes
+NAME       CPU(cores)   CPU%      MEMORY(bytes)  MEMORY%   
+master01   465m         26%       295Mi          28%       
+master02   408m         23%       229Mi          33%       
+master03   440m         25%       221Mi          37%       
+node01     376m         10%       1047Mi         63%       
+node02     196m         5%        976Mi          60%       
+node03     206m         5%        907Mi          62%       
+```
+
+### 11 部署Dashboard
 
 下载kubernetes-dashboard.yaml
 
@@ -1164,7 +1235,7 @@ spec:
           servicePort: 443
 ```
 
-### 11 服务暴露到公网
+### 12 服务暴露到公网
 
 kubernetes中的Service暴露到外部有三种方式，分别是：
 
@@ -1178,9 +1249,11 @@ NodePort Service顾名思义，实质上就是通过在集群的每个node上暴
 
 Ingress可以实现使用nginx等开源的反向代理负载均衡器实现对外暴露服务，可以理解Ingress就是用于配置域名转发的一个东西，在nginx中就类似upstream，它与ingress-controller结合使用，通过ingress-controller监控到pod及service的变化，动态地将ingress中的转发信息写到诸如nginx、apache、haproxy等组件中实现方向代理和负载均衡。
 
-### 12 部署Nginx-ingress-controller
+### 13 部署Nginx-ingress-controller
 
 `Nginx-ingress-controller`是kubernetes官方提供的集成了Ingress-controller和Nginx的一个docker镜像。
+
+本次部署中，将Nginx-ingress部署到`master01、master02、master03`上，监听宿主机的`80`端口:
 
 ```yaml
 apiVersion: v1
@@ -1347,6 +1420,6 @@ spec:
         effect: NoSchedule
 ```
 
-部署完Nginx-ingress-controller后，解析域名`dashboard.cloudnil.com`到node02的外网IP，就可以使用`dashboard.cloudnil.com`访问dashboard。
+部署完Nginx-ingress-controller后，解析域名`dashboard.cloudnil.com`到master01、master02、master03的外网IP，就可以使用`dashboard.cloudnil.com`访问dashboard。
 
 >版权声明：允许转载，请注明原文出处：http://cloudnil.com/2018/08/24/Deploy-kubernetes(1.11.2)-HA-with-kubeadm/。
