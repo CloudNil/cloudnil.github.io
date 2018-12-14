@@ -25,7 +25,7 @@ keywords: [docker,云计算,kubernetes]
 
 ### 2 安装docker
 
-```Bash
+```
 apt update && apt install -y apt-transport-https software-properties-common
 
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
@@ -100,7 +100,7 @@ etcd:
 
 **阿里源安装**
 
-```Bash
+```
 curl -fsSL https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
 
 cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
@@ -115,7 +115,7 @@ apt-get install -y kubelet kubeadm kubectl ipvsadm
 
 本方案中采用ipvs作为kube-proxy的转发机制，效率比iptables高很多，开启ipvs模块支持。
 
-```Bash
+```
 modprobe ip_vs && modprobe ip_vs_rr && modprobe ip_vs_wrr && modprobe ip_vs_sh
 ```
 
@@ -236,12 +236,12 @@ registry.cn-hangzhou.aliyuncs.com/google_containers/coredns:1.2.6
 
 master01初始化指令：
 
-```bash
+```
 kubeadm init --config kubeadm-config.yml
 ```
 如果镜像已经提前下载，安装过程大概30秒，输出结果如下：
 
-```Bash
+```
 [init] Using Kubernetes version: v1.13.1
 [preflight] Running pre-flight checks
   [WARNING SystemVerification]: this Docker version is not on the list of validated versions: 18.09.0. Latest validated version: 18.06
@@ -821,7 +821,7 @@ kubectl apply -f calico.yml
 
 检查各节点组件运行状态：
 
-```Bash
+```
 root@master01:~# kubectl get nodes
 NAME       STATUS   ROLES    AGE   VERSION
 master01   Ready    master   13m   v1.13.1
@@ -857,7 +857,7 @@ done
 
 在master02，master03上执行加入集群命令：
 
-```bash
+```
 kubeadm join api.me:6443 --token uhj19f.laeqd6hbrkniqxg7 --discovery-token-ca-cert-hash sha256:aa570bd8126fa83b605540854f53c27840nc0ba7560ab6a6644ba75629194bea --experimental-control-plane
 ```
 >注意：Master节点和Node节点加入集群的区别就在于最后一个flag：`--experimental-control-plane`
@@ -896,7 +896,7 @@ kube-scheduler-master03                    1/1     Running   0          7m35s
 
 Master节点安装好了Node节点就简单了,在各个Node节点上执行。
 
-```Bash
+```
 kubeadm join api.me:6443 --token uhj19f.laeqd6hbrkniqxg7 --discovery-token-ca-cert-hash sha256:aa570bd8126fa83b605540854f53c27840nc0ba7560ab6a6644ba75629194bea
 ```
 
@@ -904,13 +904,13 @@ kubeadm join api.me:6443 --token uhj19f.laeqd6hbrkniqxg7 --discovery-token-ca-ce
 
 删除原单点coredns
 
-```bash
+```
 kubectl delete deploy coredns -n kube-system
 ```
 
 部署多实例的coredns集群，参考配置coredns.yml：
 
-```bash
+```
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1092,7 +1092,7 @@ node03     206m         5%     907Mi           12%
 
 下载kubernetes-dashboard.yaml
 
-```Bash
+```
 curl -O https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
 ```
 
