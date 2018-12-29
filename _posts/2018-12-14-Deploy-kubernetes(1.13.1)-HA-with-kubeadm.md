@@ -1244,6 +1244,18 @@ spec:
           servicePort: 443
 ```
 
+暴露本地端口到Master01访问测试：
+
+```
+#直接暴露Pod端口到本地
+kubectl port-forward  pod/kubernetes-dashboard-fc78cd558-thdrv --address 0.0.0.0 12345:9090
+
+#直接暴露Service端口到本地
+kubectl port-forward  svc/kubernetes-dashboard --address 0.0.0.0 12345:80
+```
+
+访问地址：`http://172.16.2.1:12345`。
+
 ### 12 服务暴露到公网
 
 kubernetes中的Service暴露到外部有三种方式，分别是：
