@@ -1,12 +1,12 @@
 ---
 layout: post
-title:  kubeadm快速部署kubernetes(1.13.1,HA)
+title:  kubeadm快速部署kubernetes(1.15.0,HA)
 categories: [docker,Cloud]
-date: 2018-12-14 10:58:30 +0800
+date: 2019-06-23 10:58:30 +0800
 keywords: [docker,云计算,kubernetes]
 ---
 
->当前版本的kubeadm已经原生支持部署HA模式集群，非常方便即可实现HA模式的kubernetes集群。本次部署基于Ubuntu16.04，并使用最新的docker版本：18.06.1，kubernetes适用1.13.x版本，本文采用1.13.1。
+>当前版本的kubeadm已经原生支持部署HA模式集群，非常方便即可实现HA模式的kubernetes集群。本次部署基于Ubuntu16.04，并使用最新的docker版本：18.06.3，kubernetes适用1.15.x版本，本文采用1.15.0。
 
 ### 1 环境准备
 
@@ -22,6 +22,7 @@ keywords: [docker,云计算,kubernetes]
 | 172.16.2.13  | Node03   | Compute         | Ubuntu16.04 |
 | 172.16.2.251 | Dns01    | DNS             | Ubuntu16.04 |
 | 172.16.2.252 | Dns01    | DNS             | Ubuntu16.04 |
+>注意：需要在/etc/hosts中配置本机的主机名解析，如Master01，添加：172.16.2.1 master01 。
 
 ### 2 安装docker
 
@@ -37,6 +38,25 @@ apt update
 apt install docker-ce=18.06.1~ce~3-0~ubuntu
 ```
 
+配置docker使用systemd驱动，相比默认的cgrouops更稳定。
+
+```
+cat > /etc/docker/daemon.json <<EOF
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
+}
+EOF
+
+mkdir -p /etc/systemd/system/docker.service.d
+systemctl daemon-reload
+systemctl restart docker
+```
+
 ### 3 安装etcd集群
 
 使用了docker-compose安装，当然，如果觉得麻烦，也可以直接docker run。
@@ -44,52 +64,55 @@ apt install docker-ce=18.06.1~ce~3-0~ubuntu
 Master01节点的ETCD的docker-compose.yml：
 
 ```yaml
-etcd:
-  image: quay.io/coreos/etcd:v3.2.25
-  command: etcd --name etcd-srv1 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.1:2379,http://172.16.2.1:2380 --initial-advertise-peer-urls http://172.16.2.1:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.2:2380,etcd-srv3=http://172.16.2.3:2380" -initial-cluster-state new
-  net: "bridge"
-  ports:
-  - "2379:2379"
-  - "2380:2380"
-  restart: always
-  stdin_open: true
-  tty: true
-  volumes:
-  - /store/etcd:/var/etcd
+version: "3.7"
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.3.13
+    command: etcd --name etcd-srv1 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.1:2379,http://172.16.2.1:2380 --initial-advertise-peer-urls http://172.16.2.1:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.2:2380,etcd-srv3=http://172.16.2.3:2380" -initial-cluster-state new
+    network_mode: "host"
+    restart: always
+    stdin_open: true
+    tty: true
+    environment:
+    - ETCDCTL_API=3
+    volumes:
+    - /store/etcd:/var/etcd
 ```
 
 Master02节点的ETCD的docker-compose.yml：
 
 ```yaml
-etcd:
-  image: quay.io/coreos/etcd:v3.2.25
-  command: etcd --name etcd-srv2 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.2:2379,http://172.16.2.2:2380 --initial-advertise-peer-urls http://172.16.2.2:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.2:2380,etcd-srv3=http://172.16.2.3:2380" -initial-cluster-state new
-  net: "bridge"
-  ports:
-  - "2379:2379"
-  - "2380:2380"
-  restart: always
-  stdin_open: true
-  tty: true
-  volumes:
-  - /store/etcd:/var/etcd
+version: "3.7"
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.3.13
+    command: etcd --name etcd-srv2 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.2:2379,http://172.16.2.2:2380 --initial-advertise-peer-urls http://172.16.2.2:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.2:2380,etcd-srv3=http://172.16.2.3:2380" -initial-cluster-state new
+    network_mode: "host"
+    restart: always
+    stdin_open: true
+    tty: true
+    environment:
+    - ETCDCTL_API=3
+    volumes:
+    - /store/etcd:/var/etcd
 ```
 
 Master03节点的ETCD的docker-compose.yml：
 
 ```yaml
-etcd:
-  image: quay.io/coreos/etcd:v3.2.25
-  command: etcd --name etcd-srv3 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.3:2379,http://172.16.2.3:2380 --initial-advertise-peer-urls http://172.16.2.3:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.2:2380,etcd-srv3=http://172.16.2.3:2380" -initial-cluster-state new
-  net: "bridge"
-  ports:
-  - "2379:2379"
-  - "2380:2380"
-  restart: always
-  stdin_open: true
-  tty: true
-  volumes:
-  - /store/etcd:/var/etcd
+version: "3.7"
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.3.13
+    command: etcd --name etcd-srv3 --data-dir=/var/etcd/calico-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://172.16.2.3:2379,http://172.16.2.3:2380 --initial-advertise-peer-urls http://172.16.2.3:2380 --listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd-srv1=http://172.16.2.1:2380,etcd-srv2=http://172.16.2.2:2380,etcd-srv3=http://172.16.2.3:2380" -initial-cluster-state new
+    network_mode: "host"
+    restart: always
+    stdin_open: true
+    tty: true
+    environment:
+    - ETCDCTL_API=3
+    volumes:
+    - /store/etcd:/var/etcd
 ```
 
 创建好docker-compose.yml文件后，使用命令`docker-compose up -d`部署。
@@ -109,6 +132,7 @@ EOF
 
 apt-get update
 apt-get install -y kubelet kubeadm kubectl ipvsadm
+apt-mark hold kubelet kubeadm kubectl ipvsadm docker-ce
 ```
 
 ### 4 启用ipvs模块
@@ -196,7 +220,7 @@ etcd:
 networking:
   serviceSubnet: 10.96.0.0/12
   podSubnet: 10.68.0.0/16
-kubernetesVersion: v1.13.1
+kubernetesVersion: v1.15.0
 controlPlaneEndpoint: api.me:6443
 apiServer:
   certSANs:
@@ -225,26 +249,25 @@ mode: ipvs
 
 相关镜像：
 ```
-registry.cn-hangzhou.aliyuncs.com/google_containers/kube-apiserver:v1.13.1
-registry.cn-hangzhou.aliyuncs.com/google_containers/kube-controller-manager:v1.13.1
-registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler:v1.13.1
-registry.cn-hangzhou.aliyuncs.com/google_containers/kube-proxy:v1.13.1
+registry.cn-hangzhou.aliyuncs.com/google_containers/kube-apiserver:v1.15.0
+registry.cn-hangzhou.aliyuncs.com/google_containers/kube-controller-manager:v1.15.0
+registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler:v1.15.0
+registry.cn-hangzhou.aliyuncs.com/google_containers/kube-proxy:v1.15.0
 registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.1
-registry.cn-hangzhou.aliyuncs.com/google_containers/etcd:3.2.24
-registry.cn-hangzhou.aliyuncs.com/google_containers/coredns:1.2.6
+registry.cn-hangzhou.aliyuncs.com/google_containers/etcd:3.3.10
+registry.cn-hangzhou.aliyuncs.com/google_containers/coredns:1.3.1
 ```
 
 master01初始化指令：
 
 ```
-kubeadm init --config kubeadm-config.yaml
+kubeadm init --config=kubeadm-config.yaml --experimental-upload-certs
 ```
 如果镜像已经提前下载，安装过程大概30秒，输出结果如下：
 
 ```
-[init] Using Kubernetes version: v1.13.1
+[init] Using Kubernetes version: v1.15.0
 [preflight] Running pre-flight checks
-  [WARNING SystemVerification]: this Docker version is not on the list of validated versions: 18.09.0. Latest validated version: 18.06
 [preflight] Pulling images required for setting up a Kubernetes cluster
 [preflight] This might take a minute or two, depending on the speed of your internet connection
 [preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
@@ -253,10 +276,10 @@ kubeadm init --config kubeadm-config.yaml
 [kubelet-start] Activating the kubelet service
 [certs] Using certificateDir folder "/etc/kubernetes/pki"
 [certs] External etcd mode: Skipping etcd/ca certificate authority generation
-[certs] External etcd mode: Skipping apiserver-etcd-client certificate authority generation
 [certs] External etcd mode: Skipping etcd/server certificate authority generation
-[certs] External etcd mode: Skipping etcd/peer certificate authority generation
 [certs] External etcd mode: Skipping etcd/healthcheck-client certificate authority generation
+[certs] External etcd mode: Skipping etcd/peer certificate authority generation
+[certs] External etcd mode: Skipping apiserver-etcd-client certificate authority generation
 [certs] Generating "ca" certificate and key
 [certs] Generating "apiserver" certificate and key
 [certs] apiserver serving cert is signed for DNS names [master01 kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local api.me api.me] and IPs [10.96.0.1 172.16.2.1]
@@ -274,22 +297,24 @@ kubeadm init --config kubeadm-config.yaml
 [control-plane] Creating static Pod manifest for "kube-controller-manager"
 [control-plane] Creating static Pod manifest for "kube-scheduler"
 [wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests". This can take up to 4m0s
-[apiclient] All control plane components are healthy after 21.509043 seconds
-[uploadconfig] storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
-[kubelet] Creating a ConfigMap "kubelet-config-1.13" in namespace kube-system with the configuration for the kubelets in the cluster
-[patchnode] Uploading the CRI Socket information "/var/run/dockershim.sock" to the Node API object "master01" as an annotation
+[apiclient] All control plane components are healthy after 14.003998 seconds
+[upload-config] storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+[kubelet] Creating a ConfigMap "kubelet-config-1.14" in namespace kube-system with the configuration for the kubelets in the cluster
+[upload-certs] Storing the certificates in ConfigMap "kubeadm-certs" in the "kube-system" Namespace
+[upload-certs] Using certificate key:
+129ede0a7798ed973f53f101ca818c6f858462eaa81bac287740fd81d3c5d280
 [mark-control-plane] Marking the node master01 as control-plane by adding the label "node-role.kubernetes.io/master=''"
 [mark-control-plane] Marking the node master01 as control-plane by adding the taints [node-role.kubernetes.io/master:NoSchedule]
-[bootstrap-token] Using token: uhh19f.larqd6hbrknuqxg7
+[bootstrap-token] Using token: qa84rx.0pyz84o6xy13ca8p
 [bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
-[bootstraptoken] configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
-[bootstraptoken] configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
-[bootstraptoken] configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
-[bootstraptoken] creating the "cluster-info" ConfigMap in the "kube-public" namespace
+[bootstrap-token] configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+[bootstrap-token] configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+[bootstrap-token] configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[bootstrap-token] creating the "cluster-info" ConfigMap in the "kube-public" namespace
 [addons] Applied essential addon: CoreDNS
 [addons] Applied essential addon: kube-proxy
 
-Your Kubernetes master has initialized successfully!
+Your Kubernetes control-plane has initialized successfully!
 
 To start using your cluster, you need to run the following as a regular user:
 
@@ -301,13 +326,27 @@ You should now deploy a pod network to the cluster.
 Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
   https://kubernetes.io/docs/concepts/cluster-administration/addons/
 
-You can now join any number of machines by running the following on each node
-as root:
+You can now join any number of the control-plane node running the following command on each as root:
 
-  kubeadm join api.me:6443 --token uhj19f.laeqd6hbrkniqxg7 --discovery-token-ca-cert-hash sha256:aa570bd8126fa83b605540854f53c27840nc0ba7560ab6a6644ba75629194bea
+  kubeadm join api.me:6443 --token qa84rx.0pyz84o6xy13ca8p \
+    --discovery-token-ca-cert-hash sha256:eb5fc1a6f558e67198c1cd53aac13a29fc529729d4414443abe013beddcc851d \
+    --experimental-control-plane --certificate-key 129ede0a7798ed976f53f101ca818c6f858462eaa81bac287740fd81d3c5d280
+
+Please note that the certificate-key gives access to cluster sensitive data, keep it secret!
+As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you can use 
+"kubeadm init phase upload-certs --experimental-upload-certs" to reload certs afterward.
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join api.me:6443 --token qa84rx.0pyz84o6xy13ca8p \
+    --discovery-token-ca-cert-hash sha256:eb5fc1b6f558e67198c1cd5ca2c13a29fc529729d4414443abe013beddcc851d
 ```
 
->PS：`token`是使用指令`kubeadm token generate`生成的，执行过程如有异常，用命令`kubeadm reset`初始化后重试，生成的`token`有效时间为24小时，超过24小时后需要重新使用命令`kubeadm token create`创建新的`token`，`discovery-token-ca-cert-hash`的值可以使用命令生成：
+>说明：`certificate-key`用于其他master节点获取证书文件时验证，有小时间为2小时，超过2小时候需要重新生成：
+```
+kubeadm init phase upload-certs --experimental-upload-certs
+```
+`token`是使用指令`kubeadm token generate`生成的，执行过程如有异常，用命令`kubeadm reset`初始化后重试，生成的`token`有效时间为24小时，超过24小时后需要重新使用命令`kubeadm token create`创建新的`token`，`discovery-token-ca-cert-hash`的值可以使用命令生成：
 ```
 openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
 ```
@@ -330,21 +369,25 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
 
 ### 7 安装calico网络
 
-网络组件选择很多，可以根据自己的需要选择calico、weave、flannel，calico性能最好，flannel的vxlan也不错，默认的UDP性能较差，weave的性能比较差，测试环境用下可以，生产环境不建议使用。calico的安装配置可以参考官方部署：[点击查看](https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/calico)
+网络组件选择很多，可以根据自己的需要选择calico、weave、flannel，calico性能最好，flannel的vxlan也不错，默认的UDP性能较差，weave的性能比较差，测试环境用下可以，生产环境不建议使用。calico的安装配置可以参考官方部署：[点击查看](https://docs.projectcalico.org/v3.7/getting-started/kubernetes/installation/calico)
 
 calico-rbac.yml：
 
 ```yaml
 apiVersion: v1
 kind: ServiceAccount
+imagePullSecrets:
+- name: hub.lonhcloud.com
 metadata:
-  name: calico-kube-controllers
+  name: calico-node
   namespace: kube-system
 ---
 apiVersion: v1
 kind: ServiceAccount
+imagePullSecrets:
+- name: hub.lonhcloud.com
 metadata:
-  name: calico-node
+  name: calico-kube-controllers
   namespace: kube-system
 ---
 kind: ClusterRole
@@ -352,8 +395,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: calico-kube-controllers
 rules:
-  - apiGroups:
-      - ""
+  - apiGroups: [""]
     resources:
       - pods
       - nodes
@@ -362,8 +404,7 @@ rules:
     verbs:
       - watch
       - list
-  - apiGroups:
-      - networking.k8s.io
+  - apiGroups: ["networking.k8s.io"]
     resources:
       - networkpolicies
     verbs:
@@ -425,13 +466,27 @@ subjects:
 calico.yml：
 
 ```yaml
-# Calico Version v3.4.0
-# https://docs.projectcalico.org/v3.4/releases#v3.4.0
-# This manifest includes the following component versions:
-#   quay.io/calico/node:v3.4.0
-#   quay.io/calico/cni:v3.4.0
-#   quay.io/calico/kube-controllers:v3.4.0
-
+---
+# Source: calico/templates/calico-etcd-secrets.yaml
+# The following contains k8s Secrets for use with a TLS enabled etcd cluster.
+# For information on populating Secrets, see http://kubernetes.io/docs/user-guide/secrets/
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: calico-etcd-secrets
+  namespace: kube-system
+data:
+  # Populate the following with etcd TLS configuration if desired, but leave blank if
+  # not using TLS for etcd.
+  # The keys below should be uncommented and the values populated with the base64
+  # encoded contents of each file that would be associated with the TLS data.
+  # Example command for encoding a file contents: cat <file> | base64 -w 0
+  # etcd-key: null
+  # etcd-cert: null
+  # etcd-ca: null
+---
+# Source: calico/templates/calico-config.yaml
 # This ConfigMap is used to configure a self-hosted Calico installation.
 kind: ConfigMap
 apiVersion: v1
@@ -440,13 +495,15 @@ metadata:
   namespace: kube-system
 data:
   # Configure this with the location of your etcd cluster.
-  etcd_endpoints: "http://172.16.2.1:2379,http://172.16.2.2:2379,http://172.16.2.3:2379"
+  etcd_endpoints: "http://172.16.1.1:2379,http://172.16.1.2:2379,http://172.16.1.3:2379"
   # If you're using TLS enabled etcd uncomment the following.
   # You must also populate the Secret below with these files.
   etcd_ca: ""   # "/calico-secrets/etcd-ca"
   etcd_cert: "" # "/calico-secrets/etcd-cert"
   etcd_key: ""  # "/calico-secrets/etcd-key"
-  # Configure the Calico backend to use.
+  # Typha is disabled.
+  typha_service_name: "none"
+  # Configure the backend to use.
   calico_backend: "bird"
 
   # Configure the MTU to use
@@ -484,29 +541,10 @@ data:
         }
       ]
     }
-
 ---
-# The following contains k8s Secrets for use with a TLS enabled etcd cluster.
-# For information on populating Secrets, see http://kubernetes.io/docs/user-guide/secrets/
-apiVersion: v1
-kind: Secret
-type: Opaque
-metadata:
-  name: calico-etcd-secrets
-  namespace: kube-system
-data:
-  # Populate the following with etcd TLS configuration if desired, but leave blank if
-  # not using TLS for etcd.
-  # The keys below should be uncommented and the values populated with the base64
-  # encoded contents of each file that would be associated with the TLS data.
-  # Example command for encoding a file contents: cat <file> | base64 -w 0
-  # etcd-key: null
-  # etcd-cert: null
-  # etcd-ca: null
-
----
-# This manifest installs the calico/node container, as well
-# as the Calico CNI plugins and network config on
+# Source: calico/templates/calico-node.yaml
+# This manifest installs the calico-node container, as well
+# as the CNI plugins and network config on
 # each master and worker node in a Kubernetes cluster.
 kind: DaemonSet
 apiVersion: extensions/v1beta1
@@ -551,10 +589,10 @@ spec:
       # deletion": https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods.
       terminationGracePeriodSeconds: 0
       initContainers:
-        # This container installs the Calico CNI binaries
+        # This container installs the CNI binaries
         # and CNI network config file on each node.
         - name: install-cni
-          image: quay.io/calico/cni:v3.4.0
+          image: hub.lonhcloud.com/calico/cni:v3.7.2
           command: ["/install-cni.sh"]
           env:
             # Name of the CNI config file to create.
@@ -566,7 +604,7 @@ spec:
                 configMapKeyRef:
                   name: calico-config
                   key: cni_network_config
-            # The location of the Calico etcd cluster.
+            # The location of the etcd cluster.
             - name: ETCD_ENDPOINTS
               valueFrom:
                 configMapKeyRef:
@@ -589,13 +627,13 @@ spec:
             - mountPath: /calico-secrets
               name: etcd-certs
       containers:
-        # Runs calico/node container on each Kubernetes node.  This
+        # Runs calico-node container on each Kubernetes node.  This
         # container programs network policy and routes on each
         # host.
         - name: calico-node
-          image: quay.io/calico/node:v3.4.0
+          image: hub.lonhcloud.com/calico/node:v3.7.2
           env:
-            # The location of the Calico etcd cluster.
+            # The location of the etcd cluster.
             - name: ETCD_ENDPOINTS
               valueFrom:
                 configMapKeyRef:
@@ -700,7 +738,7 @@ spec:
             - mountPath: /calico-secrets
               name: etcd-certs
       volumes:
-        # Used by calico/node.
+        # Used by calico-node.
         - name: lib-modules
           hostPath:
             path: /lib/modules
@@ -728,7 +766,7 @@ spec:
             secretName: calico-etcd-secrets
             defaultMode: 0400
 ---
-# This manifest deploys the Calico Kubernetes controllers.
+# Source: calico/templates/calico-kube-controllers.yaml
 # See https://github.com/projectcalico/kube-controllers
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -765,9 +803,9 @@ spec:
       serviceAccountName: calico-kube-controllers
       containers:
         - name: calico-kube-controllers
-          image: quay.io/calico/kube-controllers:v3.4.0
+          image: hub.lonhcloud.com/calico/kube-controllers:v3.7.2
           env:
-            # The location of the Calico etcd cluster.
+            # The location of the etcd cluster.
             - name: ETCD_ENDPOINTS
               valueFrom:
                 configMapKeyRef:
@@ -824,7 +862,7 @@ kubectl apply -f calico.yml
 ```
 root@master01:~# kubectl get nodes
 NAME       STATUS   ROLES    AGE   VERSION
-master01   Ready    master   13m   v1.13.1
+master01   Ready    master   13m   v1.15.0
 root@master01:~# kubectl get po -n kube-system
 NAME                                       READY   STATUS    RESTARTS   AGE
 calico-kube-controllers-697d964cc4-p8jcn   1/1     Running   0          32s
@@ -839,37 +877,22 @@ kube-scheduler-master01                    1/1     Running   0          12m
 
 ### 8 安装Master02和Master03节点
 
-复制`/etc/kubernetes/pki`下的以下文件到Master02和Master03对应目录，`.ssh/cloudnil.pem`是方便节点之间访问的证书，可以使用`ssh-keygen`生成，具体使用不详细阐述，网络上文章很多，也可以直接使用账号密码。
-
-```
-USER=root
-CONTROL_PLANE_IPS="172.16.2.2 172.16.2.3"
-for host in ${CONTROL_PLANE_IPS}; do
-    scp -i .ssh/cloudnil.pem /etc/kubernetes/pki/ca.crt "${USER}"@$host:/etc/kubernetes/pki
-    scp -i .ssh/cloudnil.pem /etc/kubernetes/pki/ca.key "${USER}"@$host:/etc/kubernetes/pki
-    scp -i .ssh/cloudnil.pem /etc/kubernetes/pki/sa.key "${USER}"@$host:/etc/kubernetes/pki
-    scp -i .ssh/cloudnil.pem /etc/kubernetes/pki/sa.pub "${USER}"@$host:/etc/kubernetes/pki
-    scp -i .ssh/cloudnil.pem /etc/kubernetes/pki/front-proxy-ca.crt "${USER}"@$host:/etc/kubernetes/pki
-    scp -i .ssh/cloudnil.pem /etc/kubernetes/pki/front-proxy-ca.key "${USER}"@$host:/etc/kubernetes/pki
-    scp -i .ssh/cloudnil.pem /etc/kubernetes/admin.conf "${USER}"@$host:/etc/kubernetes/admin.conf
-done
-```
-
 在master02，master03上执行加入集群命令：
 
 ```
-kubeadm join api.me:6443 --token uhj19f.laeqd6hbrkniqxg7 --discovery-token-ca-cert-hash sha256:aa570bd8126fa83b605540854f53c27840nc0ba7560ab6a6644ba75629194bea --experimental-control-plane
+kubeadm join api.me:6443 --token qa84rx.0pyz84o6xy13ca8p \
+    --discovery-token-ca-cert-hash sha256:eb5fc1a6f558e67198c1cd53aac13a29fc529729d4414443abe013beddcc851d \
+    --experimental-control-plane --certificate-key 129ede0a7798ed976f53f101ca818c6f858462eaa81bac287740fd81d3c5d280
 ```
->注意：Master节点和Node节点加入集群的区别就在于最后一个flag：`--experimental-control-plane`
 
 可以查看下各节点及组件运行状态：
 
 ```
 root@master01:~# kubectl get nodes
 NAME       STATUS   ROLES    AGE     VERSION
-master01   Ready    master   25m     v1.13.1
-master02   Ready    master   8m6s    v1.13.1
-master03   Ready    master   7m33s   v1.13.1
+master01   Ready    master   25m     v1.15.0
+master02   Ready    master   8m6s    v1.15.0
+master03   Ready    master   7m33s   v1.15.0
 root@master01:~# kubectl get po -n kube-system
 NAME                                       READY   STATUS    RESTARTS   AGE
 calico-kube-controllers-697d964cc4-p8jcn   1/1     Running   0          12m
@@ -897,7 +920,8 @@ kube-scheduler-master03                    1/1     Running   0          7m35s
 Master节点安装好了Node节点就简单了,在各个Node节点上执行。
 
 ```
-kubeadm join api.me:6443 --token uhj19f.laeqd6hbrkniqxg7 --discovery-token-ca-cert-hash sha256:aa570bd8126fa83b605540854f53c27840nc0ba7560ab6a6644ba75629194bea
+kubeadm join api.me:6443 --token qa84rx.0pyz84o6xy13ca8p \
+    --discovery-token-ca-cert-hash sha256:eb5fc1b6f558e67198c1cd5ca2c13a29fc529729d4414443abe013beddcc851d
 ```
 
 ### 10 DNS集群部署
@@ -911,7 +935,7 @@ kubectl delete deploy coredns -n kube-system
 部署多实例的coredns集群，参考配置coredns.yml：
 
 ```
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   labels:
@@ -919,8 +943,9 @@ metadata:
   name: coredns
   namespace: kube-system
 spec:
-  #集群规模可自行配置
+  progressDeadlineSeconds: 600
   replicas: 3
+  revisionHistoryLimit: 10
   selector:
     matchLabels:
       k8s-app: kube-dns
@@ -931,6 +956,7 @@ spec:
     type: RollingUpdate
   template:
     metadata:
+      creationTimestamp: null
       labels:
         k8s-app: kube-dns
     spec:
@@ -950,7 +976,7 @@ spec:
       - args:
         - -conf
         - /etc/coredns/Corefile
-        image: registry.cn-hangzhou.aliyuncs.com/google_containers/coredns:1.2.6
+        image: registry.cn-hangzhou.aliyuncs.com/google_containers/coredns:1.3.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 5
@@ -973,6 +999,15 @@ spec:
         - containerPort: 9153
           name: metrics
           protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: 8080
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
         resources:
           limits:
             memory: 170Mi
@@ -986,6 +1021,7 @@ spec:
             - NET_BIND_SERVICE
             drop:
             - all
+          procMount: Default
           readOnlyRootFilesystem: true
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
@@ -994,6 +1030,9 @@ spec:
           name: config-volume
           readOnly: true
       dnsPolicy: Default
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
@@ -1093,21 +1132,28 @@ node03     206m         5%     907Mi           12%
 下载kubernetes-dashboard.yaml
 
 ```
-curl -O https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+curl -O https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/alternative/kubernetes-dashboard.yaml
 ```
 
-修改配置内容，增加ingress配置，后边配置了nginx-ingress后就可以直接绑定域名访问了。
+修改配置内容，注释默认的Role权限配置，绑定cluster-admin权限（便于学习研究，生产环境建议根据需要配置RBAC权限），并增加ingress配置，后边配置了nginx-ingress后就可以直接绑定域名访问了。
 
 ```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  labels:
-    k8s-app: kubernetes-dashboard
-  name: kubernetes-dashboard-certs
-  namespace: kube-system
-type: Opaque
----
+# Copyright 2017 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ------------------- Dashboard Service Account ------------------- #
+
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -1115,55 +1161,74 @@ metadata:
     k8s-app: kubernetes-dashboard
   name: kubernetes-dashboard
   namespace: kube-system
+# ---
+# ------------------- Dashboard Role & Role Binding ------------------- #
+
+# kind: Role
+# apiVersion: rbac.authorization.k8s.io/v1
+# metadata:
+#   name: kubernetes-dashboard-minimal
+#   namespace: kube-system
+# rules:
+#   # Allow Dashboard to create 'kubernetes-dashboard-key-holder' secret.
+# - apiGroups: [""]
+#   resources: ["secrets"]
+#   verbs: ["create"]
+#   # Allow Dashboard to create 'kubernetes-dashboard-settings' config map.
+# - apiGroups: [""]
+#   resources: ["configmaps"]
+#   verbs: ["create"]
+#   # Allow Dashboard to get, update and delete Dashboard exclusive secrets.
+# - apiGroups: [""]
+#   resources: ["secrets"]
+#   resourceNames: ["kubernetes-dashboard-key-holder"]
+#   verbs: ["get", "update", "delete"]
+#   # Allow Dashboard to get and update 'kubernetes-dashboard-settings' config map.
+# - apiGroups: [""]
+#   resources: ["configmaps"]
+#   resourceNames: ["kubernetes-dashboard-settings"]
+#   verbs: ["get", "update"]
+#   # Allow Dashboard to get metrics from heapster.
+# - apiGroups: [""]
+#   resources: ["services"]
+#   resourceNames: ["heapster"]
+#   verbs: ["proxy"]
+# - apiGroups: [""]
+#   resources: ["services/proxy"]
+#   resourceNames: ["heapster", "http:heapster:", "https:heapster:"]
+#   verbs: ["get"]
+
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   name: kubernetes-dashboard-minimal
+#   namespace: kube-system
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: Role
+#   name: kubernetes-dashboard-minimal
+# subjects:
+# - kind: ServiceAccount
+#   name: kubernetes-dashboard
+#   namespace: kube-system
 ---
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
 metadata:
-  name: kubernetes-dashboard-minimal
-  namespace: kube-system
-rules:
-  # Allow Dashboard to create 'kubernetes-dashboard-key-holder' secret.
-- apiGroups: [""]
-  resources: ["secrets"]
-  verbs: ["create"]
-  # Allow Dashboard to create 'kubernetes-dashboard-settings' config map.
-- apiGroups: [""]
-  resources: ["configmaps"]
-  verbs: ["create"]
-  # Allow Dashboard to get, update and delete Dashboard exclusive secrets.
-- apiGroups: [""]
-  resources: ["secrets"]
-  resourceNames: ["kubernetes-dashboard-key-holder", "kubernetes-dashboard-certs"]
-  verbs: ["get", "update", "delete"]
-  # Allow Dashboard to get and update 'kubernetes-dashboard-settings' config map.
-- apiGroups: [""]
-  resources: ["configmaps"]
-  resourceNames: ["kubernetes-dashboard-settings"]
-  verbs: ["get", "update"]
-  # Allow Dashboard to get metrics from heapster.
-- apiGroups: [""]
-  resources: ["services"]
-  resourceNames: ["heapster"]
-  verbs: ["proxy"]
-- apiGroups: [""]
-  resources: ["services/proxy"]
-  resourceNames: ["heapster", "http:heapster:", "https:heapster:"]
-  verbs: ["get"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: kubernetes-dashboard-minimal
-  namespace: kube-system
+  name: kubernetes-dashboard
+  labels:
+    k8s-app: kubernetes-dashboard
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: kubernetes-dashboard-minimal
+  kind: ClusterRole
+  name: cluster-admin
 subjects:
 - kind: ServiceAccount
   name: kubernetes-dashboard
   namespace: kube-system
 ---
+# ------------------- Dashboard Deployment ------------------- #
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -1184,32 +1249,30 @@ spec:
     spec:
       containers:
       - name: kubernetes-dashboard
-        image: registry.cn-hangzhou.aliyuncs.com/google_containers/kubernetes-dashboard-amd64:v1.10.0
+        image: registry.cn-hangzhou.aliyuncs.com/google_containers/kubernetes-dashboard-amd64:v1.10.1
         ports:
-        - containerPort: 8443
+        - containerPort: 9090
           protocol: TCP
         args:
-          - --auto-generate-certificates
+          # Uncomment the following line to manually specify Kubernetes API server Host
+          # If not specified, Dashboard will attempt to auto discover the API server and connect
+          # to it. Uncomment only if the default does not work.
+          # - --apiserver-host=http://my-address:port
         volumeMounts:
-        - name: kubernetes-dashboard-certs
-          mountPath: /certs
           # Create on-disk volume to store exec logs
         - mountPath: /tmp
           name: tmp-volume
         livenessProbe:
           httpGet:
-            scheme: HTTPS
             path: /
-            port: 8443
+            port: 9090
           initialDelaySeconds: 30
           timeoutSeconds: 30
       volumes:
-      - name: kubernetes-dashboard-certs
-        secret:
-          secretName: kubernetes-dashboard-certs
       - name: tmp-volume
         emptyDir: {}
       serviceAccountName: kubernetes-dashboard
+      # Comment the following tolerations if Dashboard must not be deployed on master
       tolerations:
       - key: node-role.kubernetes.io/master
         effect: NoSchedule
@@ -1223,8 +1286,8 @@ metadata:
   namespace: kube-system
 spec:
   ports:
-    - port: 443
-      targetPort: 8443
+  - port: 80
+    targetPort: 9090
   selector:
     k8s-app: kubernetes-dashboard
 ---
@@ -1233,15 +1296,18 @@ kind: Ingress
 metadata:
   name: dashboard-ingress
   namespace: kube-system
+  annotations:
+    ingress.kubernetes.io/auth-type: basic
+    ingress.kubernetes.io/auth-secret: common-auth
 spec:
   rules:
-  - host: dashboard.cloudnil.com
+  - host: console.cloudnil.com
     http:
       paths:
       - path: /
         backend:
           serviceName: kubernetes-dashboard
-          servicePort: 443
+          servicePort: 80
 ```
 
 暴露本地端口到Master01访问测试：
@@ -1271,6 +1337,8 @@ NodePort Service顾名思义，实质上就是通过在集群的每个node上暴
 Ingress可以实现使用nginx等开源的反向代理负载均衡器实现对外暴露服务，可以理解Ingress就是用于配置域名转发的一个东西，在nginx中就类似upstream，它与ingress-controller结合使用，通过ingress-controller监控到pod及service的变化，动态地将ingress中的转发信息写到诸如nginx、apache、haproxy等组件中实现方向代理和负载均衡。
 
 ### 13 部署Nginx-ingress-controller
+
+>说明：Nginx-controller和Traefik-controller二选一。
 
 `Nginx-ingress-controller`是kubernetes官方提供的集成了Ingress-controller和Nginx的一个docker镜像。
 
@@ -1554,6 +1622,151 @@ spec:
               memory: 512Mi
 ```
 
-部署完Nginx-ingress-controller后，解析域名`dashboard.cloudnil.com`到master01、master02、master03的外网IP，就可以使用`dashboard.cloudnil.com`访问dashboard。
+### 14 部署Nginx-ingress-controller
+
+>说明：Nginx-ingress-controller和Traefik-ingress-controller二选一。
+
+`Traefik-ingress-controller`是一个为了让部署微服务更加便捷而诞生的现代HTTP反向代理、负载均衡工具。 它支持多种后台 (Docker, Swarm, Kubernetes, Marathon, Mesos, Consul, Etcd, Zookeeper, BoltDB, Rest API, file…) 来自动化、动态的应用它的配置文件设置。
+
+相比起`Nginx`，`Traefik`更轻量，速度更快，配置更简单，不过功能及拓展性不如Nginx丰富多样，各位可根据实际情况选择。
+
+本次部署中，将Traefik-ingress部署到`master01、master02、master03`上，监听宿主机的`80`端口:
+
+Namespace 和 RBAC角色配置：
+
+```
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: traefik-ingress-controller
+  namespace: traefik
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: traefik-ingress-controller
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - endpoints
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - extensions
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+    - extensions
+    resources:
+    - ingresses/status
+    verbs:
+    - update
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: traefik-ingress-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: traefik-ingress-controller
+subjects:
+- kind: ServiceAccount
+  name: traefik-ingress-controller
+  namespace: traefik
+```
+
+```
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: traefik-ingress-controller
+  namespace: traefik
+  labels:
+    k8s-app: traefik-ingress-lb
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      k8s-app: traefik-ingress-lb
+  template:
+    metadata:
+      labels:
+        k8s-app: traefik-ingress-lb
+        name: traefik-ingress-lb
+    spec:
+      volumes:
+      - name: certs
+        secret:
+          secretName: traefik-cert
+      - name: config
+        configMap:
+          name: traefik-config
+      hostNetwork: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - master01
+                - master02
+                - master03
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values: 
+                    - traefik-ingress-controller
+              topologyKey: "kubernetes.io/hostname"
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      serviceAccountName: traefik-ingress-controller
+      terminationGracePeriodSeconds: 60
+      containers:
+      - image: traefik:1.7.12-alpine
+        name: traefik-ingress-lb
+        ports:
+        - name: http
+          containerPort: 80
+        - name: admin
+          containerPort: 8080
+        args:
+        - --api
+        - --kubernetes
+        - --logLevel=INFO
+        resources:
+          limits:
+            cpu: 1
+            memory: 1024Mi
+          requests:
+            cpu: 0.25
+            memory: 512Mi
+```
+
+部署完成之后，可以访问Traefik的控制台（只能看Ingress规则）：`MasterIP：8080`。
+
+### 15 结语
+
+`Nginx-ingress-controller`或`Traefik-ingress-controller`部署完成之后，解析相关域名如`dashboard.cloudnil.com`到master01、master02、master03的外网IP，就可以使用`dashboard.cloudnil.com`访问dashboard，其他应用类似。
 
 >版权声明：允许转载，请注明原文出处：http://cloudnil.com/2018/12/24/Deploy-kubernetes(1.13.1)-HA-with-kubeadm/。
