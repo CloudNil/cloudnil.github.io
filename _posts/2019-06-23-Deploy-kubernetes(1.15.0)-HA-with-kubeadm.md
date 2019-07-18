@@ -376,16 +376,12 @@ calico-rbac.yml：
 ```yaml
 apiVersion: v1
 kind: ServiceAccount
-imagePullSecrets:
-- name: hub.lonhcloud.com
 metadata:
   name: calico-node
   namespace: kube-system
 ---
 apiVersion: v1
 kind: ServiceAccount
-imagePullSecrets:
-- name: hub.lonhcloud.com
 metadata:
   name: calico-kube-controllers
   namespace: kube-system
@@ -592,7 +588,7 @@ spec:
         # This container installs the CNI binaries
         # and CNI network config file on each node.
         - name: install-cni
-          image: hub.lonhcloud.com/calico/cni:v3.7.2
+          image: calico/cni:v3.7.2
           command: ["/install-cni.sh"]
           env:
             # Name of the CNI config file to create.
@@ -631,7 +627,7 @@ spec:
         # container programs network policy and routes on each
         # host.
         - name: calico-node
-          image: hub.lonhcloud.com/calico/node:v3.7.2
+          image: calico/node:v3.7.2
           env:
             # The location of the etcd cluster.
             - name: ETCD_ENDPOINTS
@@ -803,7 +799,7 @@ spec:
       serviceAccountName: calico-kube-controllers
       containers:
         - name: calico-kube-controllers
-          image: hub.lonhcloud.com/calico/kube-controllers:v3.7.2
+          image: calico/kube-controllers:v3.7.2
           env:
             # The location of the etcd cluster.
             - name: ETCD_ENDPOINTS
@@ -1622,6 +1618,8 @@ spec:
               memory: 512Mi
 ```
 
+更多配置可参考Nginx-ingress-controller官网：`https://kubernetes.github.io/ingress-nginx`。
+
 ### 14 部署Nginx-ingress-controller
 
 >说明：Nginx-ingress-controller和Traefik-ingress-controller二选一。
@@ -1763,10 +1761,10 @@ spec:
             memory: 512Mi
 ```
 
-部署完成之后，可以访问Traefik的控制台（只能看Ingress规则）：`MasterIP：8080`。
+部署完成之后，可以访问Traefik的控制台（只能看Ingress规则）：`MasterIP：8080`，更多配置可参考Traefik官网：`https://docs.traefik.io`。
 
 ### 15 结语
 
 `Nginx-ingress-controller`或`Traefik-ingress-controller`部署完成之后，解析相关域名如`dashboard.cloudnil.com`到master01、master02、master03的外网IP，就可以使用`dashboard.cloudnil.com`访问dashboard，其他应用类似。
 
->版权声明：允许转载，请注明原文出处：http://cloudnil.com/2018/12/24/Deploy-kubernetes(1.13.1)-HA-with-kubeadm/。
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2019/06/23/Deploy-kubernetes(1.15.0)-HA-with-kubeadm/。
