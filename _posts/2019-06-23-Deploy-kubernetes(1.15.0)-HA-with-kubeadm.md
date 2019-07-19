@@ -22,6 +22,7 @@ keywords: [docker,云计算,kubernetes]
 | 172.16.2.13  | Node03   | Compute         | Ubuntu16.04 |
 | 172.16.2.251 | Dns01    | DNS             | Ubuntu16.04 |
 | 172.16.2.252 | Dns01    | DNS             | Ubuntu16.04 |
+
 >注意：需要在/etc/hosts中配置本机的主机名解析，如Master01，添加：172.16.2.1 master01 。
 
 ### 2 安装docker
