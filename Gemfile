@@ -1,2 +1,2 @@
-source 'https://rubygems.org'
+source 'https://gems.ruby-china.org'
 gem 'github-pages', '>=104', group: :jekyll_plugins

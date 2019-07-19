@@ -1,11 +1,11 @@
-FROM ruby:2.3.1-alpine
+FROM ruby:2.6.3-alpine
 
 MAINTAINER cloudnil <cloudnil@126.com>
 
 ENV TZ 'Asia/Shanghai'
 
 RUN apk upgrade --no-cache && \
-    apk add --no-cache bash tzdata nodejs py-pygments git gcc musl-dev make && \
+    apk add --no-cache bash tzdata nodejs py-pygments git g++ musl-dev make && \
     git clone https://github.com/cloudnil/cloudnil.github.io.git /root/cloudnil.github.io && \
     cd /root/cloudnil.github.io && \
     gem install --no-document bundle && \
