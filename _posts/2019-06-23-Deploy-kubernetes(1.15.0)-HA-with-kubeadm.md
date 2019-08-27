@@ -1126,150 +1126,55 @@ node03     206m         5%     907Mi           12%
 
 ### 11 部署Dashboard
 
-下载kubernetes-dashboard.yaml
-
-```
-curl -O https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/alternative/kubernetes-dashboard.yaml
-```
-
-修改配置内容，注释默认的Role权限配置，绑定cluster-admin权限（便于学习研究，生产环境建议根据需要配置RBAC权限），并增加ingress配置，后边配置了nginx-ingress后就可以直接绑定域名访问了。
+推荐`k8dash`,比官方的`dashboard`顺眼多了，项目地址：`https://github.com/herbrandson/k8dash`。
 
 ```yaml
-# Copyright 2017 The Kubernetes Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# ------------------- Dashboard Service Account ------------------- #
-
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  labels:
-    k8s-app: kubernetes-dashboard
-  name: kubernetes-dashboard
+  name: k8dash-sa
   namespace: kube-system
-# ---
-# ------------------- Dashboard Role & Role Binding ------------------- #
-
-# kind: Role
-# apiVersion: rbac.authorization.k8s.io/v1
-# metadata:
-#   name: kubernetes-dashboard-minimal
-#   namespace: kube-system
-# rules:
-#   # Allow Dashboard to create 'kubernetes-dashboard-key-holder' secret.
-# - apiGroups: [""]
-#   resources: ["secrets"]
-#   verbs: ["create"]
-#   # Allow Dashboard to create 'kubernetes-dashboard-settings' config map.
-# - apiGroups: [""]
-#   resources: ["configmaps"]
-#   verbs: ["create"]
-#   # Allow Dashboard to get, update and delete Dashboard exclusive secrets.
-# - apiGroups: [""]
-#   resources: ["secrets"]
-#   resourceNames: ["kubernetes-dashboard-key-holder"]
-#   verbs: ["get", "update", "delete"]
-#   # Allow Dashboard to get and update 'kubernetes-dashboard-settings' config map.
-# - apiGroups: [""]
-#   resources: ["configmaps"]
-#   resourceNames: ["kubernetes-dashboard-settings"]
-#   verbs: ["get", "update"]
-#   # Allow Dashboard to get metrics from heapster.
-# - apiGroups: [""]
-#   resources: ["services"]
-#   resourceNames: ["heapster"]
-#   verbs: ["proxy"]
-# - apiGroups: [""]
-#   resources: ["services/proxy"]
-#   resourceNames: ["heapster", "http:heapster:", "https:heapster:"]
-#   verbs: ["get"]
-
-# ---
-# apiVersion: rbac.authorization.k8s.io/v1
-# kind: RoleBinding
-# metadata:
-#   name: kubernetes-dashboard-minimal
-#   namespace: kube-system
-# roleRef:
-#   apiGroup: rbac.authorization.k8s.io
-#   kind: Role
-#   name: kubernetes-dashboard-minimal
-# subjects:
-# - kind: ServiceAccount
-#   name: kubernetes-dashboard
-#   namespace: kube-system
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: kubernetes-dashboard
-  labels:
-    k8s-app: kubernetes-dashboard
+  name: k8dash-sa
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cluster-admin
 subjects:
 - kind: ServiceAccount
-  name: kubernetes-dashboard
+  name: k8dash-sa
   namespace: kube-system
 ---
-# ------------------- Dashboard Deployment ------------------- #
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  labels:
-    k8s-app: kubernetes-dashboard
-  name: kubernetes-dashboard
+  name: k8dash
   namespace: kube-system
 spec:
   replicas: 1
-  revisionHistoryLimit: 10
   selector:
     matchLabels:
-      k8s-app: kubernetes-dashboard
+      k8s-app: k8dash
   template:
     metadata:
       labels:
-        k8s-app: kubernetes-dashboard
+        k8s-app: k8dash
     spec:
       containers:
-      - name: kubernetes-dashboard
-        image: registry.cn-hangzhou.aliyuncs.com/google_containers/kubernetes-dashboard-amd64:v1.10.1
+      - name: k8dash
+        image: herbrandson/k8dash:latest
         ports:
-        - containerPort: 9090
-          protocol: TCP
-        args:
-          # Uncomment the following line to manually specify Kubernetes API server Host
-          # If not specified, Dashboard will attempt to auto discover the API server and connect
-          # to it. Uncomment only if the default does not work.
-          # - --apiserver-host=http://my-address:port
-        volumeMounts:
-          # Create on-disk volume to store exec logs
-        - mountPath: /tmp
-          name: tmp-volume
+        - containerPort: 4654
         livenessProbe:
           httpGet:
+            scheme: HTTP
             path: /
-            port: 9090
+            port: 4654
           initialDelaySeconds: 30
           timeoutSeconds: 30
-      volumes:
-      - name: tmp-volume
-        emptyDir: {}
-      serviceAccountName: kubernetes-dashboard
-      # Comment the following tolerations if Dashboard must not be deployed on master
       tolerations:
       - key: node-role.kubernetes.io/master
         effect: NoSchedule
@@ -1277,25 +1182,22 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  labels:
-    k8s-app: kubernetes-dashboard
-  name: kubernetes-dashboard
+  name: k8dash-svc
   namespace: kube-system
 spec:
   ports:
-  - port: 80
-    targetPort: 9090
+    - port: 80
+      targetPort: 4654
   selector:
-    k8s-app: kubernetes-dashboard
+    k8s-app: k8dash
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: dashboard-ingress
+  name: k8dash-ing
   namespace: kube-system
-  annotations:
-    ingress.kubernetes.io/auth-type: basic
-    ingress.kubernetes.io/auth-secret: common-auth
+  labels:
+    k8s-app: k8dash
 spec:
   rules:
   - host: console.cloudnil.com
@@ -1303,7 +1205,7 @@ spec:
       paths:
       - path: /
         backend:
-          serviceName: kubernetes-dashboard
+          serviceName: k8dash-svc
           servicePort: 80
 ```
 
@@ -1311,10 +1213,10 @@ spec:
 
 ```
 #直接暴露Pod端口到本地
-kubectl port-forward  pod/kubernetes-dashboard-fc78cd558-thdrv --address 0.0.0.0 12345:9090
+kubectl port-forward  pod/k8dash-fc78cd558-thdrv --address 0.0.0.0 12345:4654 -n kube-system
 
 #直接暴露Service端口到本地
-kubectl port-forward  svc/kubernetes-dashboard --address 0.0.0.0 12345:80
+kubectl port-forward  svc/k8dash-svc --address 0.0.0.0 12345:80 -n kube-system
 ```
 
 访问地址：`http://172.16.2.1:12345`。
@@ -1621,7 +1523,7 @@ spec:
 
 更多配置可参考Nginx-ingress-controller官网：`https://kubernetes.github.io/ingress-nginx`。
 
-### 14 部署Nginx-ingress-controller
+### 14 部署Traefik-ingress-controller
 
 >说明：Nginx-ingress-controller和Traefik-ingress-controller二选一。
 
