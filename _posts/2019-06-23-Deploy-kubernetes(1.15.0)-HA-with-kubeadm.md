@@ -1209,6 +1209,12 @@ spec:
           servicePort: 80
 ```
 
+登录时需要输入`Token`，查看命令：
+
+```
+kubectl get secrets -n kube-system |grep k8dash-sa-token|awk '{print $1}'| xargs kubectl describe secret -n kube-system
+```
+
 暴露本地端口到Master01访问测试：
 
 ```
