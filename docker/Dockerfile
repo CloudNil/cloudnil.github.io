@@ -17,6 +17,7 @@ RUN apk upgrade --no-cache && \
 
 COPY cron/15min/* /etc/periodic/15min
 COPY docker-entrypoint.sh /usr/local/bin/
+chmod +x /etc/periodic/15min/*
 RUN ln -s /usr/local/bin/docker-entrypoint.sh /docker-entrypoint.sh
 
 WORKDIR /root
