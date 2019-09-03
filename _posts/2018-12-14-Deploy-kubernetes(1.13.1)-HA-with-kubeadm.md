@@ -108,7 +108,7 @@ deb http://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
 EOF
 
 apt-get update
-apt-get install -y kubelet kubeadm kubectl ipvsadm
+apt-get install -y kubelet kubeadm kubectl ipvsadm ipset
 ```
 
 ### 4 启用ipvs模块
