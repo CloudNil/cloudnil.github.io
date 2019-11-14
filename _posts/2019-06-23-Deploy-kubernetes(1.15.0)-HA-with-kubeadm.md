@@ -132,7 +132,7 @@ deb http://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
 EOF
 
 apt-get update
-apt-get install -y kubelet kubeadm kubectl ipvsadm
+apt-get install -y kubelet kubeadm kubectl ipvsadm ipset
 apt-mark hold kubelet kubeadm kubectl ipvsadm docker-ce
 ```
 
