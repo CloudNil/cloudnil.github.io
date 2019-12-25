@@ -1698,4 +1698,4 @@ spec:
 
 `Nginx-ingress-controller`或`Traefik-ingress-controller`部署完成之后，解析相关域名如`console.cloudnil.com`到master01、master02、master03的外网IP，就可以使用`console.cloudnil.com`访问dashboard，其他应用类似。
 
->版权声明：允许转载，请注明原文出处：http://cloudnil.com/2019/06/23/Deploy-kubernetes(1.17.0)-HA-with-kubeadm/。
+>版权声明：允许转载，请注明原文出处：http://cloudnil.com/2019/12/18/Deploy-kubernetes(1.17.0)-HA-with-kubeadm/。
