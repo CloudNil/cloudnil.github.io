@@ -6,7 +6,7 @@ date: 2019-12-18 10:58:30 +0800
 keywords: [docker,云计算,kubernetes]
 ---
 
->当前版本的kubeadm已经原生支持部署HA模式集群，非常方便即可实现HA模式的kubernetes集群。本次部署基于Ubuntu18.04，并使用最新的docker版本：18.06.3~ce~3-0~ubuntu.17.x版本，本文采用1.17.0。
+>当前版本的kubeadm已经原生支持部署HA模式集群，非常方便即可实现HA模式的kubernetes集群。本次部署基于Ubuntu18.04，并使用最新的docker版本：18.06.3~ce~3-0~ubuntu，kubernetes适用1.17.x版本，本文采用1.17.0。
 
 ### 1 环境准备
 
