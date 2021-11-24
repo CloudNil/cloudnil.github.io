@@ -153,7 +153,7 @@ etcd:
 
 创建好docker-compose.yml文件后，使用命令`docker-compose up -d`部署。
 
-### 3 安装k8s工具包
+### 4 安装k8s工具包
 
 使用阿里云提供的源安装软件包
 
@@ -173,7 +173,7 @@ systemctl enable kubelet
 systemctl start kubelet
 ```
 
-### 4 启用ipvs模块
+### 5 启用ipvs模块
 
 本方案中采用ipvs作为kube-proxy的转发机制，效率比iptables高很多，开启ipvs模块支持。启用的ipvs相关模块重启机器后需要重启加载，为了避免麻烦，可以将加载模块配置在为开机启动（所有节点上都需要配置），华为鲲鹏的CentOS7.5其实默认已经开启，可以跳过本步骤：
 
@@ -189,7 +189,7 @@ EOF
 chmod 755 /etc/sysconfig/modules/ipvs.modules && bash /etc/sysconfig/modules/ipvs.modules && lsmod | grep -e ip_vs
 ```
 
-### 5 Api-Server负载均衡
+### 6 Api-Server负载均衡
 
 配置负载均衡器对kube-apiserver进行负载均衡，可采用DNS轮询解析或者Haproxy（Nginx）反向代理实现负载均衡。
 
@@ -230,7 +230,7 @@ nameserver 172.16.2.252
 EOF
 ```
 
-### 6 安装master节点
+### 7 安装master节点
 
 kubeadm配置文件kubeadm-config.yaml：
 
@@ -391,7 +391,7 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 export KUBECONFIG=/etc/kubernetes/admin.conf
 ```
 
-### 7 安装calico网络
+### 8 安装calico网络
 
 网络组件选择很多，可以根据自己的需要选择calico、weave、flannel，calico性能最好，flannel的vxlan也不错，默认的UDP性能较差，weave的性能比较差，测试环境用下可以，生产环境不建议使用。calico的安装配置可以参考官方部署：[点击查看](https://docs.projectcalico.org/v3.15/getting-started/kubernetes/installation/calico)
 
@@ -951,7 +951,7 @@ kube-proxy-9l287                           1/1     Running   0          13m
 kube-scheduler-master01                    1/1     Running   0          12m
 ```
 
-### 8 安装Master02和Master03节点
+### 9 安装Master02和Master03节点
 
 在master02，master03上执行加入集群命令：
 
@@ -991,7 +991,7 @@ kube-scheduler-master02                    1/1     Running   0          8m9s
 kube-scheduler-master03                    1/1     Running   0          7m35s
 ```
 
-### 9 安装Node节点
+### 10 安装Node节点
 
 Master节点安装好了Node节点就简单了,在各个Node节点上执行。
 
@@ -1000,7 +1000,7 @@ kubeadm join api.k8s.com:6443 --token vbcbuv.osci507haylbl00i \
   --discovery-token-ca-cert-hash sha256:87540f79ca94e422f3600a1e4d3e8669d0f4125d46877e296b790810a1f9aade
 ```
 
-### 10 DNS集群部署
+### 11 DNS集群部署
 
 删除原单点coredns
 
@@ -1128,7 +1128,7 @@ spec:
         name: config-volume
 ```
 
-### 10 部署Metrics-Server
+### 12 部署Metrics-Server
 
 kubernetesv1.11以后不再支持通过`heaspter`采集监控数据，支持新的监控数据采集组件`metrics-server`，比`heaspter`轻量很多，也不做数据的持久化存储，提供实时的监控数据查询还是很好用的。
 
@@ -1159,7 +1159,7 @@ node02     196m         5%     976Mi           10%
 node03     206m         5%     907Mi           12%       
 ```
 
-### 11 部署Dashboard
+### 13 部署Dashboard
 
 推荐`k8dash`,比官方的`dashboard`顺眼多了，项目地址：`https://github.com/skooner-k8s/skooner`。
 
@@ -1262,7 +1262,7 @@ kubectl port-forward  svc/skooner --address 0.0.0.0 12345:80 -n kube-system
 
 访问地址：`http://172.16.2.1:12345`。
 
-### 12 服务暴露到公网
+### 14 服务暴露到公网
 
 kubernetes中的Service暴露到外部有三种方式，分别是：
 
@@ -1276,7 +1276,7 @@ NodePort Service顾名思义，实质上就是通过在集群的每个node上暴
 
 Ingress可以实现使用nginx等开源的反向代理负载均衡器实现对外暴露服务，可以理解Ingress就是用于配置域名转发的一个东西，在nginx中就类似upstream，它与ingress-controller结合使用，通过ingress-controller监控到pod及service的变化，动态地将ingress中的转发信息写到诸如nginx、apache、haproxy等组件中实现方向代理和负载均衡。
 
-### 13 部署Traefik-ingress-controller
+### 15 部署Traefik-ingress-controller
 
 `Traefik-ingress-controller`是一个为了让部署微服务更加便捷而诞生的现代HTTP反向代理、负载均衡工具。 它支持多种后台 (Docker, Swarm, Kubernetes, Marathon, Mesos, Consul, Etcd, Zookeeper, BoltDB, Rest API, file…) 来自动化、动态的应用它的配置文件设置。
 
@@ -1608,7 +1608,7 @@ spec:
 
 部署完成之后，可以访问Traefik的控制台（只能看Ingress规则）：`MasterIP：8080`，更多配置可参考Traefik官网：`https://docs.traefik.io`。
 
-### 14 结语
+### 16 结语
 
 `Traefik-ingress-controller`部署完成之后，解析相关域名如`console.cloudnil.com`到master01、master02、master03的外网IP，就可以使用`console.cloudnil.com`访问dashboard，其他应用类似。
 
