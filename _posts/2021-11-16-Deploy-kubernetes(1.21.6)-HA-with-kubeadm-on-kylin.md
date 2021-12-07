@@ -1471,14 +1471,10 @@ data:
     # metrics:
     #   prometheus: ""            ## 配置 Prometheus 监控指标数据，并使用默认配置
     entryPoints:
-      http:
+      web:
         address: ":80"          ## 配置 80 端口，并设置入口名称为 web
-      grpc:
-        address: ":9527"        ## 配置 9527 端口，并设置入口名称为 grpc
-      https:
-        address: ":443"         ## 配置 443 端口，并设置入口名称为 https
-        http:
-          tls: {}
+      websecure:
+        address: ":443"         ## 配置 443 端口，并设置入口名称为 websecure
     providers:
       kubernetesCRD: ""         ## 启用 Kubernetes CRD 方式来配置路由规则
       kubernetesIngress: ""     ## 启动 Kubernetes Ingress 方式来配置路由规则
@@ -1558,8 +1554,6 @@ spec:
         ports:
         - name: http
           containerPort: 80
-        - name: grpc
-          containerPort: 9527
         - name: https
           containerPort: 443
         - name: admin
@@ -1608,7 +1602,88 @@ spec:
 
 部署完成之后，可以访问Traefik的控制台（只能看Ingress规则）：`MasterIP：8080`，更多配置可参考Traefik官网：`https://docs.traefik.io`。
 
-### 16 结语
+### 16 Dashboard开启TLS访问
+
+针对单个应用开启TLS安全访问的步骤：
+
+- 1.Traefik配置443端口监听
+- 2.创建证书Secret
+- 3.Ingress上配置证书及使用的`Traefik Entrypoint`
+
+修改Traefik Configmap配置文件中的entryPoints，修改更新Configmap后需要重建Traefik容器以便快速应用新的配置。
+
+```
+    entryPoints:
+      web:
+        address: ":80"          ## 配置 80 端口，并设置入口名称为 web
+      websecure:
+        address: ":443"         ## 配置 443 端口，并设置入口名称为 websecure
+```
+
+创建证书Secret可以使用自建证书或购买证书，自建证书为不受信任证书，地址栏访问时会提示不安全。
+
+```
+#生成证书
+openssl req -newkey rsa:4096 -nodes -sha256 -keyout certs/cloudnil.com.key -x509 -days 365 -out certs/cloudnil.com.crt
+
+#创建证书Secret
+kubectl create secret tls tls-cert --cert=cloudnil.com.crt --key=cloudnil.com.key -n kube-system
+```
+
+修改k8dash的Ingress配置，可以使用原生Ingress或者Traefik拓展的`IngressRoute`（二选一）。
+
+```yaml
+#原生Ingress配置，推荐
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: k8dash-ing
+  labels:
+    k8s-app: k8dash
+  namespace: kube-system
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  tls:
+  - hosts:
+    - console.cloudnil.com
+    secretName: tls-cert
+  rules:
+  - host: console.cloudnil.com
+    http:
+      paths:
+      - path: /
+        pathType: "Prefix"
+        backend:
+          service:
+            name: k8dash-svc
+            port: 
+              number: 80
+---
+#Traefik IngressRoute配置
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: k8dash-ingroute
+  labels:
+    k8s-app: k8dash
+  namespace: kube-system
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`console.cloudnil.com`) && PathPrefix(`/`)
+    kind: Rule
+    services:
+    - name: earth-web-svc
+      port: 80
+  tls:
+    certResolver: tls-cert
+```
+
+### 17 结语
 
 `Traefik-ingress-controller`部署完成之后，解析相关域名如`console.cloudnil.com`到master01、master02、master03的外网IP，就可以使用`console.cloudnil.com`访问dashboard，其他应用类似。
 
