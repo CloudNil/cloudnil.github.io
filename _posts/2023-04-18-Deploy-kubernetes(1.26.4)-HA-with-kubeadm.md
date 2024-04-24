@@ -169,7 +169,7 @@ services:
     - /store/etcd:/var/etcd
 ```
 
-创建好docker-compose.yml文件后，使用命令`docker compose up -d`部署。
+创建好docker-compose.yml文件和数据存储目录`/store/etcd`，使用命令`docker compose up -d`部署。
 
 >关于docker-compose的使用，可以参考：[docker compose安装文档](https://docs.docker.com/compose/install/#alternative-install-options)。
 
@@ -243,15 +243,27 @@ services:
     stdin_open: true
     tty: true
 ```
->说明：Ubuntu18.04 默认会开启本地DNS服务，要先关闭默认DNS服务并配置禁止启动：`systemctl disable systemd-resolved`，`systemctl stop systemd-resolved`，同时修改节点DNS配置文件`/etc/resolv.conf`中的`nameserver`为公网DNS服务器IP。
 
-3、在除了部署dnsmasq服务的其他所有节点上(包括Master和Node)，配置DNS（同时也要先停用本机默认启动的DNS服务）
+3、在除了部署dnsmasq服务的其他所有节点上(包括Master和Node)，配置DNS`/etc/systemd/resolved.conf`（同时也要先停用本机默认启动的DNS服务）
 
 ```
-cat <<EOF >/etc/resolv.conf
-nameserver 172.16.2.251
-nameserver 172.16.2.252
-EOF
+[Resolve]
+DNS=172.16.2.251 172.16.2.252
+#FallbackDNS=
+#Domains=
+#LLMNR=no
+#MulticastDNS=no
+#DNSSEC=no
+#DNSOverTLS=no
+#Cache=no-negative
+DNSStubListener=no
+#ReadEtcHosts=yes
+```
+
+重启使配置生效。
+
+```
+systemctl restart systemd-resolved.service
 ```
 
 ### 7 安装master节点
@@ -1098,7 +1110,8 @@ kube-scheduler-master01                    1/1     Running   0          12m
 ```
 kubeadm join api.k8s.com:6443 --token obrxsw.2wzhv0z6nfnc4nyr \
     --discovery-token-ca-cert-hash sha256:312a5bab2f699a4e701fb08ce65218b01aff7521fc962f35ad56e5d3214d3e6f \
-    --control-plane --certificate-key fbf4fd608065cb4478a6269de8ca7402ceec7640209df73dbdef254e3d02efbd
+    --control-plane --certificate-key fbf4fd608065cb4478a6269de8ca7402ceec7640209df73dbdef254e3d02efbd \
+    --criSocket unix:///var/run/cri-dockerd.sock
 ```
 
 可以查看下各节点及组件运行状态：
@@ -1497,46 +1510,27 @@ node03     206m         5%     907Mi           12%
 
 ### 13 部署Dashboard
 
-推荐`k8dash`,比官方的`dashboard`顺眼多了，项目地址：`https://github.com/herbrandson/k8dash`。
+推荐`skooner`,比官方的`dashboard`顺眼多了，项目地址：`https://github.com/skooner-k8s/skooner`。
 
 ```yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: k8dash-sa
-  namespace: kube-system
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1beta1
-metadata:
-  name: k8dash-sa
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-admin
-subjects:
-- kind: ServiceAccount
-  name: k8dash-sa
-  namespace: kube-system
----
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: k8dash
+  name: skooner
   namespace: kube-system
 spec:
   replicas: 1
   selector:
     matchLabels:
-      k8s-app: k8dash
+      k8s-app: skooner
   template:
     metadata:
       labels:
-        k8s-app: k8dash
+        k8s-app: skooner
     spec:
       containers:
-      - name: k8dash
-        image: herbrandson/k8dash:latest
+      - name: skooner
+        image: ghcr.io/skooner-k8s/skooner:stable
         ports:
         - containerPort: 4654
         livenessProbe:
@@ -1546,28 +1540,27 @@ spec:
             port: 4654
           initialDelaySeconds: 30
           timeoutSeconds: 30
-      tolerations:
-      - key: node-role.kubernetes.io/master
-        effect: NoSchedule
+      nodeSelector:
+        'kubernetes.io/os': linux
 ---
 kind: Service
 apiVersion: v1
 metadata:
-  name: k8dash-svc
+  name: skooner-svc
   namespace: kube-system
 spec:
   ports:
     - port: 80
       targetPort: 4654
   selector:
-    k8s-app: k8dash
+    k8s-app: skooner
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: k8dash-ing
+  name: skooner-ing
   labels:
-    k8s-app: k8dash
+    k8s-app: skooner
   namespace: kube-system
 spec:
   rules:
@@ -1578,16 +1571,25 @@ spec:
         pathType: "Prefix"
         backend:
           service:
-            name: k8dash-svc
+            name: skooner-svc
             port: 
               number: 80
 
 ```
 
-登录时需要输入`Token`，查看命令：
+采用Token方式进行登陆：
 
 ```
-kubectl get secrets -n kube-system |grep k8dash-sa-token|awk '{print $1}'| xargs kubectl describe secret -n kube-system
+# Create the service account in the current namespace (we assume default)
+kubectl create serviceaccount skooner-sa -n kube-system
+
+kubectl create clusterrolebinding skooner-sa --clusterrole=cluster-admin --serviceaccount=default:skooner-sa -n kube-system
+
+# K8S 1.22+版本
+kubectl create token skooner-sa
+
+# 查看Token
+kubectl get secrets -n kube-system |grep skooner-sa|awk '{print $1}'| xargs kubectl describe secret -n kube-system
 ```
 
 暴露本地端口到Master01访问测试：
