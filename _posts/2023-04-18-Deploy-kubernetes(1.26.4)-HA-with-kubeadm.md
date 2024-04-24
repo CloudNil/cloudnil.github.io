@@ -1425,12 +1425,12 @@ spec:
       containers:
       - args:
         - --cert-dir=/tmp
-        - --secure-port=4443
+        - --secure-port=10250
         - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
         - --kubelet-use-node-status-port
         - --metric-resolution=15s
         - --kubelet-insecure-tls
-        image: registry.aliyuncs.com/google_containers/metrics-server:v0.6.3
+        image: registry.aliyuncs.com/google_containers/metrics-server:v0.7.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -1441,7 +1441,7 @@ spec:
           periodSeconds: 10
         name: metrics-server
         ports:
-        - containerPort: 4443
+        - containerPort: 10250
           name: https
           protocol: TCP
         readinessProbe:
@@ -1458,9 +1458,14 @@ spec:
             memory: 200Mi
         securityContext:
           allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
           readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 1000
+          seccompProfile:
+            type: RuntimeDefault
         volumeMounts:
         - mountPath: /tmp
           name: tmp-dir
@@ -1580,15 +1585,14 @@ spec:
 采用Token方式进行登陆：
 
 ```
-# Create the service account in the current namespace (we assume default)
 kubectl create serviceaccount skooner-sa -n kube-system
 
 kubectl create clusterrolebinding skooner-sa --clusterrole=cluster-admin --serviceaccount=default:skooner-sa -n kube-system
 
-# K8S 1.22+版本
-kubectl create token skooner-sa
+# K8S 1.22+版本需单独创建token
+kubectl create token skooner-sa -n kube-system
 
-# 查看Token
+# K8S 1.21-版本直接查看Token
 kubectl get secrets -n kube-system |grep skooner-sa|awk '{print $1}'| xargs kubectl describe secret -n kube-system
 ```
 
