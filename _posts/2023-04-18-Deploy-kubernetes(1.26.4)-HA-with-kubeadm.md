@@ -1111,7 +1111,7 @@ kube-scheduler-master01                    1/1     Running   0          12m
 kubeadm join api.k8s.com:6443 --token obrxsw.2wzhv0z6nfnc4nyr \
     --discovery-token-ca-cert-hash sha256:312a5bab2f699a4e701fb08ce65218b01aff7521fc962f35ad56e5d3214d3e6f \
     --control-plane --certificate-key fbf4fd608065cb4478a6269de8ca7402ceec7640209df73dbdef254e3d02efbd \
-    --criSocket unix:///var/run/cri-dockerd.sock
+    --cri-socket unix:///var/run/cri-dockerd.sock
 ```
 
 可以查看下各节点及组件运行状态：
