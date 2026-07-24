@@ -8,8 +8,8 @@ menu: 关于
 permalink: /about/
 ---
 
->史绍虎，80后IT男，网名：可不勺子，代号：VF。
-喜爱游泳、看片、打游戏、敲代码，属于工薪阶层的苦逼北漂一族。
+>虎哥，80后IT男，网名：可不勺子，代号：VF。
+喜爱游泳、跑步、打游戏、敲代码、研究新兴技术，属于工薪阶层的苦逼北漂一族。
 知识面虽广，却不一一精通。有技术危机感及强迫症，常常陷于无法学会所有IT技术的泥沼不能自拔。
 
 ## 坚信
@@ -23,7 +23,7 @@ permalink: /about/
 * Email：`cloudnil@126.com`
 * GitHub：[@VFT](https://github.com/VFT)
 * 博客：[{{ site.title }}]({{ site.url }})
-* 微博: [@可不勺子](http://weibo.com/shaozi1985)
+* 公众号: [虎哥的AI干货铺](https://mp.weixin.qq.com/s/_bcdZsCtX6YK6x7HEGiyJw)
 * CSDN: [VF@CSDN](http://blog.csdn.net/tiger435)
 
 ## 擅长技能
